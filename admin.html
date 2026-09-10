@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Admin Resepsionis - Peminjaman Ruang Diskusi</title>
+    <link rel="stylesheet" href="portal-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body style="background-color: #f8f9fa;">
+    <div class="app-container">
+        <!-- Top App Header Admin -->
+        <header class="app-header" style="background:#212529; color:white; border-bottom:3px solid #d92550;">
+            <div class="app-header__logo">
+                <img src="https://portal.pknstan.ac.id/assets/plugins/images/stan_ico.ico" alt="PKN STAN Logo" width="36" height="36">
+                <strong style="color:white;">Dashboard Admin Resepsionis (Gedung P)</strong>
+            </div>
+            <div class="app-header-user">
+                <div style="text-align:right; font-size:0.85rem; margin-right:10px;">
+                    <div style="font-weight:bold; color:#f7b924;"><i class="fa fa-user-shield"></i> Petugas Resepsionis</div>
+                    <div style="font-size:0.75rem; color:#aaa;">Gedung P Lantai 1</div>
+                </div>
+            </div>
+        </header>
+
+        <main class="app-main__outer" style="padding: 1.5rem;">
+            <!-- Page Title Bar -->
+            <div class="app-page-title" style="background:white; padding:1.2rem; border-radius:0.45rem; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);">
+                <div class="page-title-heading">
+                    <h1>Monitoring & Serah Terima Kunci Ruang Diskusi</h1>
+                    <div class="page-title-subheading">Panel Kontrol Petugas Perpustakaan untuk Verifikasi KTM, Kunci, dan Pembatalan Keterlambatan</div>
+                </div>
+                <div>
+                    <button class="btn btn-secondary btn-sm" onclick="location.reload()"><i class="fa fa-sync"></i> Refresh Data</button>
+                </div>
+            </div>
+
+            <!-- Dashboard Stat Cards -->
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:15px; margin-bottom:1.5rem;">
+                <div class="card" style="margin-bottom:0; border-left: 4px solid #3f6ad8;">
+                    <div class="card-body">
+                        <div style="color:#6c757d; font-size:0.8rem; font-weight:bold;">TOTAL PEMINJAMAN HARI INI</div>
+                        <div id="stat-total" style="font-size:1.8rem; font-weight:bold; color:#333; margin-top:5px;">0</div>
+                    </div>
+                </div>
+                <div class="card" style="margin-bottom:0; border-left: 4px solid #f7b924;">
+                    <div class="card-body">
+                        <div style="color:#6c757d; font-size:0.8rem; font-weight:bold;">MENUNGGU SERAH TERIMA KUNCI</div>
+                        <div id="stat-pending" style="font-size:1.8rem; font-weight:bold; color:#f7b924; margin-top:5px;">0</div>
+                    </div>
+                </div>
+                <div class="card" style="margin-bottom:0; border-left: 4px solid #3ac47d;">
+                    <div class="card-body">
+                        <div style="color:#6c757d; font-size:0.8rem; font-weight:bold;">RUANGAN SEDANG DIGUNAKAN</div>
+                        <div id="stat-active" style="font-size:1.8rem; font-weight:bold; color:#3ac47d; margin-top:5px;">0</div>
+                    </div>
+                </div>
+                <div class="card" style="margin-bottom:0; border-left: 4px solid #d92550;">
+                    <div class="card-body">
+                        <div style="color:#6c757d; font-size:0.8rem; font-weight:bold;">GUGUR / DIBATALKAN</div>
+                        <div id="stat-cancelled" style="font-size:1.8rem; font-weight:bold; color:#d92550; margin-top:5px;">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Control Table -->
+            <div class="card">
+                <div class="card-header">
+                    <span><i class="fa fa-tasks"></i> Daftar Permohonan & Aktivitas Ruang Diskusi</span>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <input type="text" id="admin-search" class="form-control" placeholder="Cari Nama / NIM / Ruangan..." style="width:250px;" onkeyup="renderAdminTable()">
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div style="overflow-x:auto;">
+                        <table class="table-custom">
+                            <thead>
+                                <tr>
+                                    <th>Kode Booking</th>
+                                    <th>Pemesan & Kontak</th>
+                                    <th>Prodi & Kelas</th>
+                                    <th>Ruangan & Jam</th>
+                                    <th>Verifikasi Identitas</th>
+                                    <th>Status Peminjaman</th>
+                                    <th style="text-align:center;">Aksi Resepsionis</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-table-body">
+                                <!-- Dynamic JS rendered -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Status Grid Preview -->
+            <div class="card">
+                <div class="card-header">
+                    <span><i class="fa fa-th"></i> Denah / Visualisasi Ketersediaan Ruangan Live</span>
+                </div>
+                <div class="card-body">
+                    <div id="admin-room-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap:15px;">
+                        <!-- Dynamic JS rendered room cards -->
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Script Application Logic -->
+    <script src="app.js"></script>
+    <script>
+        // Ensure initial render is for admin
+        document.addEventListener('DOMContentLoaded', () => {
+            renderAdminTable();
+            renderAdminRoomGrid();
+        });
+    </script>
+</body>
+</html>
