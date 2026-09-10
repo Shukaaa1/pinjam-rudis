@@ -20,11 +20,11 @@ const TIME_SLOTS = ['08.00', '09.00', '10.00', '11.00', '13.00', '14.00', '15.00
 
 // User Logged In Mock Data
 const CURRENT_USER = {
-    nama: 'VERI GALIH SETIYO AJI',
-    nim: '4131230098',
-    email: 'galih_4131230098@pknstan.ac.id',
-    prodi: 'Sarjana Terapan Manajemen Keuangan Negara',
-    kelas: '4-01',
+    nama: 'RADEN MAS GALIH CHONDRO KIRONO MANGUN KUSUMO',
+    nim: '4131230001',
+    email: 'radenmas_4131230001@pknstan.ac.id',
+    prodi: 'Sarjana Terapan Manajemen Keuangan Dinasti',
+    kelas: '6 Sisfo 5',
     hp: '081234567890'
 };
 
@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderMatrixGrid();
     renderMyBookings();
-    
+
     // Auto sync when storage changes (Cross-Tab Live Sync)
     window.addEventListener('storage', () => {
         renderMatrixGrid();
@@ -140,9 +140,9 @@ function renderMatrixGrid() {
 
         TIME_SLOTS.forEach(slot => {
             // Find active booking matching room, date, and slot
-            const activeBooking = bookings.find(b => 
-                b.roomId === room.id && 
-                b.date === filterDate && 
+            const activeBooking = bookings.find(b =>
+                b.roomId === room.id &&
+                b.date === filterDate &&
                 isSlotOccupied(b.slot, b.durasi, slot) &&
                 ['Menunggu Kunci', 'Sedang Digunakan'].includes(b.status)
             );
@@ -192,7 +192,7 @@ function openBookingModal(roomId, roomName, slot, roomCap) {
 
     document.getElementById('target-room-slot').value = `${roomName} (${filterDate} - Jam ${slot})`;
     document.getElementById('room-cap-hint').innerText = `Kapasitas maksimal ruangan ini: ${roomCap} orang (Minimal 3 orang).`;
-    
+
     const modal = document.getElementById('booking-modal');
     modal.classList.remove('hidden');
 }
@@ -256,7 +256,7 @@ function handleFormSubmit(e) {
 
     closeModal('booking-modal');
     alert(`Pemesanan Berhasil!\nKode Booking Anda: ${newBooking.id}\nSilakan ambil kunci di Meja Resepsionis (Gedung P Lantai 1) 5 menit sebelum jadwal.`);
-    
+
     renderMatrixGrid();
     renderMyBookings();
 }
@@ -324,7 +324,7 @@ function renderAdminTable() {
     const query = document.getElementById('admin-search')?.value.toLowerCase() || '';
     const bookings = getBookings();
 
-    const filtered = bookings.filter(b => 
+    const filtered = bookings.filter(b =>
         b.nama.toLowerCase().includes(query) ||
         b.nim.toLowerCase().includes(query) ||
         b.roomName.toLowerCase().includes(query) ||
@@ -421,7 +421,7 @@ function adminReturnKey(bookingId) {
 
 function adminMarkGugur(bookingId) {
     if (!confirm('Gugurkan peminjaman ini karena pemesan terlambat hadir >15 menit dari jadwal?')) return;
-    
+
     const bookings = getBookings();
     const target = bookings.find(b => b.id === bookingId);
     if (target) {
