@@ -322,6 +322,32 @@ body {
     outline-offset: -2px;
 }
 
+/* Custom Add Button in Matrix Grid */
+.gantt-add-btn {
+    display: inline-block;
+    background-color: #28a745;
+    color: #fff;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(0.9);
+    transition: all 0.2s ease;
+}
+
+.gantt-add-btn i {
+    margin-right: 3px;
+}
+
+.gantt-available-cell:hover .gantt-add-btn,
+.gantt-available-cell-selected .gantt-add-btn {
+    opacity: 1;
+    visibility: visible;
+    transform: scale(1);
+}
+
 .slot-available {
     background-color: #d1e7dd;
     color: #0f5132;

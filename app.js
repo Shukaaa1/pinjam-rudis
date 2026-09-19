@@ -171,16 +171,15 @@ function renderMatrixGrid() {
             } else {
                 const isSelected = (room.id === selectedRoomId && slot === selectedSlot);
                 const activeClass = isSelected ? 'gantt-available-cell-selected' : '';
-                
+
                 html += `<td class="gantt-available-cell ${activeClass}" 
                              title="Tersedia - Klik untuk pilih ${room.name} Jam ${slot}"
                              onclick="selectSlotFromGrid('${room.id}', '${slot}')"
                              style="text-align: center; vertical-align: middle;">
-                             <i class="fa fa-plus" style="color: #6c757d; opacity: 0.4;"></i>
+                             <span class="gantt-add-btn"><i class="fa fa-plus"></i> Pesan</span>
                          </td>`;
             }
 
-            // Insert 12.00 - 13.00 Break Slot Column after 11.00
             if (slot === '11.00') {
                 html += `<td class="gantt-break-cell" title="12.00 - 13.00 Jam Istirahat & Sterilisasi Ruangan">
                             <i class="fa fa-utensils"></i> Istirahat
@@ -239,10 +238,10 @@ function validateTimeSlotConstraints() {
         if (opt2) opt2.disabled = true;
         if (opt3) opt3.disabled = true;
 
-        const hintText = slot === '11.00' 
-            ? '⏰ Catatan: Pada slot jam 11.00, durasi maksimal hanya 1 jam karena pukul 12.00 - 13.00 adalah jam istirahat.' 
+        const hintText = slot === '11.00'
+            ? '⏰ Catatan: Pada slot jam 11.00, durasi maksimal hanya 1 jam karena pukul 12.00 - 13.00 adalah jam istirahat.'
             : '⏰ Catatan: Pada slot jam 15.00, durasi maksimal hanya 1 jam karena ruang diskusi tutup pada pukul 16.00.';
-        
+
         if (notice) {
             notice.innerText = hintText;
             notice.classList.remove('hidden');
@@ -309,7 +308,7 @@ function handleFormSubmit(e) {
     const bookings = getBookings();
 
     // Check overlap for target slot & duration
-    const isOverlap = bookings.some(b => 
+    const isOverlap = bookings.some(b =>
         b.roomId === roomId &&
         b.date === filterDate &&
         ['Menunggu Kunci', 'Sedang Digunakan'].includes(b.status) &&
