@@ -174,7 +174,9 @@ function renderMatrixGrid() {
                 
                 html += `<td class="gantt-available-cell ${activeClass}" 
                              title="Tersedia - Klik untuk pilih ${room.name} Jam ${slot}"
-                             onclick="selectSlotFromGrid('${room.id}', '${slot}')">
+                             onclick="selectSlotFromGrid('${room.id}', '${slot}')"
+                             style="text-align: center; vertical-align: middle;">
+                             <i class="fa fa-plus" style="color: #6c757d; opacity: 0.4;"></i>
                          </td>`;
             }
 
