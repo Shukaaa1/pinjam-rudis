@@ -132,7 +132,7 @@
                                 </table>
                             </div>
 
-                            
+
                         </div>
                     </div>
                 </div>
@@ -211,7 +211,7 @@
         </div>
     </div>
 
-    
+
     <!-- Modal Form Pemesanan -->
     <div id="booking-modal" class="modal-backdrop hidden">
         <div class="modal-content" style="max-width: 800px;">
@@ -224,108 +224,102 @@
                     Silakan lengkapi data pemesanan di bawah ini. Pastikan Anda telah memilih jadwal yang tepat.
                 </div>
                 <form id="booking-form" onsubmit="handleFormSubmit(event)">
-                                    <!-- Pre-filled Identitas Pemesan -->
-                                    <div
-                                        style="background:#f8f9fa; padding:10px 15px; border-radius:4px; margin-bottom:15px; border:1px solid #e9ecef;">
-                                        <div
-                                            style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px; font-size:0.85rem;">
-                                            <div><strong>Nama:</strong> <span id="form-nama">RADEN MAS GALIH CHONDRO
-                                                    KIRONO MANGUN KUSUMO</span></div>
-                                            <div><strong>NIM/NIP:</strong> <span id="form-nim">4131230001</span></div>
-                                            <div><strong>Prodi:</strong> <span id="form-prodi">Sarjana Terapan Manajemen
-                                                    Keuangan Dinasti</span></div>
-                                            <div><strong>Kelas:</strong> <span id="form-kelas">6 Sisfo 5</span></div>
-                                        </div>
-                                    </div>
+                    <!-- Pre-filled Identitas Pemesan -->
+                    <div
+                        style="background:#f8f9fa; padding:10px 15px; border-radius:4px; margin-bottom:15px; border:1px solid #e9ecef;">
+                        <div
+                            style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px; font-size:0.85rem;">
+                            <div><strong>Nama:</strong> <span id="form-nama">RADEN MAS GALIH CHONDRO
+                                    KIRONO MANGUN KUSUMO</span></div>
+                            <div><strong>NIM/NIP:</strong> <span id="form-nim">4131230001</span></div>
+                            <div><strong>Prodi:</strong> <span id="form-prodi">Sarjana Terapan Manajemen
+                                    Keuangan Dinasti</span></div>
+                            <div><strong>Kelas:</strong> <span id="form-kelas">6 Sisfo 5</span></div>
+                        </div>
+                    </div>
 
-                                    <!-- Grid Pilihan Ruangan & Waktu -->
-                                    <div
-                                        style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:15px; margin-bottom:15px;">
-                                        <div class="form-group" style="margin-bottom:0;">
-                                            <label for="input-room" style="font-weight:600;"><i
-                                                    class="fa fa-door-open"></i> Pilih Ruangan *</label>
-                                            <select id="input-room" class="form-control" required
-                                                onchange="handleRoomSelectChange()">
-                                                <!-- Dynamic filled by JS -->
-                                            </select>
-                                        </div>
+                    <!-- Grid Pilihan Ruangan & Waktu -->
+                    <div style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:15px; margin-bottom:15px;">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label for="input-room" style="font-weight:600;"><i class="fa fa-door-open"></i> Pilih
+                                Ruangan *</label>
+                            <select id="input-room" class="form-control" required onchange="handleRoomSelectChange()">
+                                <!-- Dynamic filled by JS -->
+                            </select>
+                        </div>
 
-                                        <div class="form-group" style="margin-bottom:0;">
-                                            <label for="input-slot" style="font-weight:600;"><i class="fa fa-clock"></i>
-                                                Jam Mulai *</label>
-                                            <select id="input-slot" class="form-control" required
-                                                onchange="handleTimeSlotSelectChange()">
-                                                <option value="08.00">08.00</option>
-                                                <option value="09.00">09.00</option>
-                                                <option value="10.00">10.00</option>
-                                                <option value="11.00">11.00</option>
-                                                <option value="13.00">13.00</option>
-                                                <option value="14.00">14.00</option>
-                                                <option value="15.00">15.00</option>
-                                            </select>
-                                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label for="input-slot" style="font-weight:600;"><i class="fa fa-clock"></i>
+                                Jam Mulai *</label>
+                            <select id="input-slot" class="form-control" required
+                                onchange="handleTimeSlotSelectChange()">
+                                <option value="08.00">08.00</option>
+                                <option value="09.00">09.00</option>
+                                <option value="10.00">10.00</option>
+                                <option value="11.00">11.00</option>
+                                <option value="13.00">13.00</option>
+                                <option value="14.00">14.00</option>
+                                <option value="15.00">15.00</option>
+                            </select>
+                        </div>
 
-                                        <div class="form-group" style="margin-bottom:0;">
-                                            <label for="input-durasi" style="font-weight:600;"><i
-                                                    class="fa fa-hourglass-half"></i> Durasi *</label>
-                                            <select id="input-durasi" class="form-control" required
-                                                onchange="handleDurasiChange()">
-                                                <option value="1">1 Jam</option>
-                                                <option value="2" selected>2 Jam (Standar Maksimal)</option>
-                                                <option value="3">> 2 Jam (Khusus Lomba)</option>
-                                            </select>
-                                        </div>
-                                    </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label for="input-durasi" style="font-weight:600;"><i class="fa fa-hourglass-half"></i>
+                                Durasi *</label>
+                            <select id="input-durasi" class="form-control" required onchange="handleDurasiChange()">
+                                <option value="1" selected>1 Jam</option>
+                                <option value="2">2 Jam</option>
+                                <option value="3">Surat Tugas</option>
+                            </select>
+                        </div>
+                    </div>
 
-                                    <!-- Time Constraint Notice Container -->
-                                    <div id="time-constraint-notice" class="hidden"
-                                        style="font-size:0.8rem; background:#fff3cd; color:#856404; padding:8px 12px; border-radius:4px; border:1px solid #ffeeba; margin-bottom:15px;">
-                                    </div>
+                    <!-- Time Constraint Notice Container -->
+                    <div id="time-constraint-notice" class="hidden"
+                        style="font-size:0.8rem; background:#fff3cd; color:#856404; padding:8px 12px; border-radius:4px; border:1px solid #ffeeba; margin-bottom:15px;">
+                    </div>
 
-                                    <div
-                                        style="display:grid; grid-template-columns: 1fr 1fr 2fr; gap:15px; margin-bottom:15px;">
-                                        <div class="form-group" style="margin-bottom:0;">
-                                            <label for="input-hp" style="font-weight:600;">No. WhatsApp *</label>
-                                            <input type="tel" id="input-hp" class="form-control" value="081234567890"
-                                                required>
-                                        </div>
-                                        <div class="form-group" style="margin-bottom:0;">
-                                            <label for="input-jumlah" style="font-weight:600;">Jumlah Pemakai *</label>
-                                            <input type="number" id="input-jumlah" class="form-control" min="3" max="20"
-                                                value="4" required>
-                                            <small id="room-cap-hint" class="text-muted"
-                                                style="font-size:0.75rem; color:#888;">Maksimal sesuai kapasitas
-                                                ruang.</small>
-                                        </div>
-                                        <div class="form-group" style="margin-bottom:0;">
-                                            <label for="input-keperluan" style="font-weight:600;">Keperluan *</label>
-                                            <input type="text" id="input-keperluan" class="form-control"
-                                                placeholder="Diskusi kelompok / mentoring" value="Diskusi Kelompok"
-                                                required>
-                                        </div>
-                                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 2fr; gap:15px; margin-bottom:15px;">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label for="input-hp" style="font-weight:600;">No. WhatsApp *</label>
+                            <input type="tel" id="input-hp" class="form-control" value="081234567890" required>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label for="input-jumlah" style="font-weight:600;">Jumlah Pemakai *</label>
+                            <input type="number" id="input-jumlah" class="form-control" min="3" max="20" value="4"
+                                required>
+                            <small id="room-cap-hint" class="text-muted" style="font-size:0.75rem; color:#888;">Maksimal
+                                sesuai kapasitas
+                                ruang.</small>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label for="input-keperluan" style="font-weight:600;">Keperluan *</label>
+                            <input type="text" id="input-keperluan" class="form-control"
+                                placeholder="Diskusi kelompok / mentoring" value="Diskusi Kelompok" required>
+                        </div>
+                    </div>
 
-                                    <!-- Optional Document Upload for >2 hours -->
-                                    <div id="doc-upload-group" class="form-group hidden"
-                                        style="background:#fff3cd; padding:10px; border-radius:4px; border:1px solid #ffeeba; margin-bottom:15px;">
-                                        <label for="input-doc" style="font-weight:600;"><i
-                                                class="fa fa-file-upload"></i> Unggah Dokumen Pendukung (ST / ND / Bukti
-                                            Lomba) *</label>
-                                        <input type="file" id="input-doc" class="form-control" accept=".pdf,.png,.jpg">
-                                        <small style="color:#856404; font-size:0.75rem;">Diperlukan untuk peminjaman
-                                            lebih dari 2 jam.</small>
-                                    </div>
+                    <!-- Optional Document Upload for >2 hours -->
+                    <div id="doc-upload-group" class="form-group hidden"
+                        style="background:#fff3cd; padding:10px; border-radius:4px; border:1px solid #ffeeba; margin-bottom:15px;">
+                        <label for="input-doc" style="font-weight:600;"><i class="fa fa-file-upload"></i> Unggah Dokumen
+                            Pendukung (ST / ND / Bukti
+                            Lomba) *</label>
+                        <input type="file" id="input-doc" class="form-control" accept=".pdf,.png,.jpg">
+                        <small style="color:#856404; font-size:0.75rem;">Diperlukan untuk peminjaman
+                            lebih dari 2 jam.</small>
+                    </div>
 
-                                    <div
-                                        style="display:flex; justify-content:space-between; align-items:center; background:#e7f1ff; padding:10px 15px; border-radius:4px; color:#0c5460;">
-                                        <span style="font-size:0.8rem;"><i class="fa fa-exclamation-circle"></i>
-                                            Pengambilan kunci 5 menit sebelum jadwal di Resepsionis Lt. 1 dengan membawa
-                                            KTM.</span>
-                                        <button type="submit" class="btn btn-primary"
-                                            style="padding: 0.5rem 1.5rem; font-weight:600;"><i
-                                                class="fa fa-paper-plane"></i> Kirim Pemesanan</button>
-                                    </div>
-                                </form>
+                    <div
+                        style="display:flex; justify-content:space-between; align-items:center; background:#e7f1ff; padding:10px 15px; border-radius:4px; color:#0c5460;">
+                        <span style="font-size:0.8rem;"><i class="fa fa-exclamation-circle"></i>
+                            Pengambilan kunci 5 menit sebelum jadwal di Resepsionis Lt. 1 dengan membawa
+                            KTM.</span>
+                        <button type="submit" class="btn btn-primary"
+                            style="padding: 0.5rem 1.5rem; font-weight:600;"><i class="fa fa-paper-plane"></i> Kirim
+                            Pemesanan</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
