@@ -90,6 +90,14 @@ function getSlotDateTime(dateStr, slotStr) {
     return new Date(year, month, day, hour, minute, 0, 0);
 }
 
+// Helper to calculate absolute end Date object for a booking slot
+function getSlotEndDateTime(dateStr, slotStr, durasiHours) {
+    const startDateTime = getSlotDateTime(dateStr, slotStr);
+    if (!startDateTime) return null;
+    const durasi = parseInt(durasiHours || 1, 10);
+    return new Date(startDateTime.getTime() + durasi * 60 * 60 * 1000);
+}
+
 // Check and auto-expire bookings that exceeded 15-minute tolerance without key pickup
 function checkAutoExpireBookings(notify = false) {
     const saved = localStorage.getItem('pinjam_rudis_bookings');
@@ -213,6 +221,12 @@ document.addEventListener('DOMContentLoaded', () => {
     renderMatrixGrid();
     renderMyBookings();
     validateTimeSlotConstraints();
+    updateActiveSessionBanner();
+
+    // 1-second interval for active session live countdown
+    setInterval(() => {
+        updateActiveSessionBanner();
+    }, 1000);
 
     // Periodic auto-expiry check every 10 seconds
     setInterval(() => {
@@ -223,6 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('storage', () => {
         renderMatrixGrid();
         renderMyBookings();
+        updateActiveSessionBanner();
         if (typeof renderAdminTable === 'function') renderAdminTable();
         if (typeof renderAdminRoomGrid === 'function') renderAdminRoomGrid();
     });
@@ -651,11 +666,21 @@ function adminHandoverKey(bookingId) {
             }
             target.ktmVerified = true;
         }
+        const now = new Date();
         target.status = 'Sedang Digunakan';
+        target.startedAt = now.toISOString();
+
+        // Calculate absolute scheduled end time based on slot & duration
+        const scheduledEnd = getSlotEndDateTime(target.date, target.slot, target.durasi);
+        target.scheduledEndAt = scheduledEnd ? scheduledEnd.toISOString() : new Date(now.getTime() + target.durasi * 3600000).toISOString();
+        target.warned5m = false;
+        target.warnedEnd = false;
+
         saveBookings(bookings);
         renderAdminTable();
         renderAdminRoomGrid();
-        alert(`Kunci untuk ${target.roomName} telah diserahkan kepada ${target.nama}. Status diperbarui menjadi "Sedang Digunakan".`);
+        if (typeof updateActiveSessionBanner === 'function') updateActiveSessionBanner();
+        alert(`Kunci untuk ${target.roomName} telah diserahkan kepada ${target.nama}. Sesi resmi dimulai dan status diperbarui menjadi "Sedang Digunakan".`);
     }
 }
 
@@ -667,6 +692,7 @@ function adminReturnKey(bookingId) {
         saveBookings(bookings);
         renderAdminTable();
         renderAdminRoomGrid();
+        if (typeof updateActiveSessionBanner === 'function') updateActiveSessionBanner();
         alert(`Kunci ${target.roomName} telah dikembalikan. KTM dapat dikembalikan ke mahasiswa. Ruangan kembali Kosong.`);
     }
 }
@@ -683,6 +709,7 @@ function adminMarkGugur(bookingId) {
         saveBookings(bookings);
         renderAdminTable();
         renderAdminRoomGrid();
+        if (typeof updateActiveSessionBanner === 'function') updateActiveSessionBanner();
         alert(`Peminjaman ${target.id} digugurkan. Ruangan langsung dialihkan menjadi tersedia.`);
     }
 }
@@ -735,4 +762,256 @@ function renderAdminRoomGrid() {
     });
 
     gridContainer.innerHTML = html;
+}
+
+// ==========================================
+// ACTIVE SESSION & LIVE COUNTDOWN TIMER
+// ==========================================
+
+let audioCtx = null;
+let soundEnabled = true;
+
+function getAudioContext() {
+    if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+            audioCtx = new AudioContextClass();
+        }
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+    return audioCtx;
+}
+
+// Play gentle synthesized chime using Web Audio API
+function playChimeSound(type = 'warning') {
+    if (!soundEnabled) return;
+    try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+
+        const now = ctx.currentTime;
+
+        if (type === 'warning') {
+            // Melodic two-tone chime for 5-minute reminder (F5: 698.46 Hz, A5: 880 Hz)
+            const osc1 = ctx.createOscillator();
+            const gain1 = ctx.createGain();
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(698.46, now);
+            gain1.gain.setValueAtTime(0.15, now);
+            gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            osc1.connect(gain1);
+            gain1.connect(ctx.destination);
+            osc1.start(now);
+            osc1.stop(now + 0.5);
+
+            const osc2 = ctx.createOscillator();
+            const gain2 = ctx.createGain();
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(880, now + 0.25);
+            gain2.gain.setValueAtTime(0.18, now + 0.25);
+            gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+            osc2.connect(gain2);
+            gain2.connect(ctx.destination);
+            osc2.start(now + 0.25);
+            osc2.stop(now + 0.8);
+        } else if (type === 'urgent') {
+            // 3-tone chime for session finished (E5: 659.25 Hz, G5: 783.99 Hz, C6: 1046.50 Hz)
+            [659.25, 783.99, 1046.50].forEach((freq, idx) => {
+                const startTime = now + idx * 0.22;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, startTime);
+                gain.gain.setValueAtTime(0.2, startTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.6);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(startTime);
+                osc.stop(startTime + 0.6);
+            });
+        }
+    } catch (e) {
+        console.warn('Audio playback error:', e);
+    }
+}
+
+function toggleAudioChime() {
+    soundEnabled = !soundEnabled;
+    const btn = document.getElementById('btn-audio-toggle');
+    if (soundEnabled) {
+        getAudioContext();
+        playChimeSound('warning');
+        if (btn) btn.innerHTML = '<i class="fa fa-volume-up"></i> Suara Aktif';
+    } else {
+        if (btn) btn.innerHTML = '<i class="fa fa-volume-mute"></i> Suara Senyap';
+    }
+}
+
+// Format duration helper (HH:MM:SS)
+function formatDuration(ms) {
+    if (ms <= 0) return '00:00:00';
+    const totalSecs = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSecs / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
+    const secs = totalSecs % 60;
+
+    const pad = n => String(n).padStart(2, '0');
+    return `${pad(hours)}:${pad(mins)}:${pad(secs)}`;
+}
+
+// Modal helper for 5-minute warning
+function showWarning5mModal(booking) {
+    const modal = document.getElementById('modal-warning-5m');
+    if (!modal) return;
+    const roomSpan = document.getElementById('warning-5m-room-name');
+    if (roomSpan) roomSpan.innerText = booking.roomName;
+    modal.classList.remove('hidden');
+}
+
+// Modal helper for session ended
+function showSessionEndedModal(booking) {
+    const modal = document.getElementById('modal-session-ended');
+    if (!modal) return;
+    const roomSpan = document.getElementById('ended-room-name');
+    if (roomSpan) roomSpan.innerText = booking.roomName;
+    modal.classList.remove('hidden');
+}
+
+// Browser notification helper
+function sendSystemNotification(title, body) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+            new Notification(title, {
+                body: body,
+                icon: 'https://portal.pknstan.ac.id/assets/plugins/images/stan_ico.ico'
+            });
+        } catch (e) {
+            console.warn('Browser notification error:', e);
+        }
+    }
+}
+
+// Live Active Session Banner updater
+function updateActiveSessionBanner() {
+    const widget = document.getElementById('active-session-widget');
+    if (!widget) return;
+
+    const bookings = getBookings();
+    // Prioritize current user's active booking, fallback to any active booking for demo
+    const active = bookings.find(b => b.nim === CURRENT_USER.nim && b.status === 'Sedang Digunakan')
+        || bookings.find(b => b.status === 'Sedang Digunakan');
+
+    if (!active) {
+        widget.classList.add('hidden');
+        return;
+    }
+
+    widget.classList.remove('hidden');
+
+    // Ensure scheduledEndAt is present
+    if (!active.scheduledEndAt) {
+        const endDt = getSlotEndDateTime(active.date, active.slot, active.durasi);
+        active.scheduledEndAt = endDt ? endDt.toISOString() : new Date().toISOString();
+        saveBookings(bookings);
+    }
+
+    const endDateTime = new Date(active.scheduledEndAt);
+    const now = new Date();
+    const remainingMs = endDateTime - now;
+
+    const roomEl = document.getElementById('active-session-room');
+    const metaEl = document.getElementById('active-session-meta');
+    const countdownEl = document.getElementById('active-session-countdown');
+    const iconEl = document.getElementById('countdown-icon');
+
+    if (roomEl) roomEl.innerText = active.roomName;
+    if (metaEl) {
+        const slotEndStr = endDateTime.toTimeString().substring(0, 5).replace(':', '.');
+        metaEl.innerText = `Jadwal: ${active.slot} - ${slotEndStr} (${active.durasi} Jam) | Pemesan: ${active.nama}`;
+    }
+
+    if (remainingMs > 5 * 60 * 1000) {
+        // Normal state (> 5 mins)
+        widget.classList.remove('warning-5m', 'expired');
+        if (iconEl) {
+            iconEl.className = 'fa fa-stopwatch';
+            iconEl.style.color = '#3f6ad8';
+        }
+        if (countdownEl) {
+            countdownEl.innerText = formatDuration(remainingMs);
+        }
+    } else if (remainingMs > 0 && remainingMs <= 5 * 60 * 1000) {
+        // 5-minute warning state
+        widget.classList.add('warning-5m');
+        widget.classList.remove('expired');
+        if (iconEl) {
+            iconEl.className = 'fa fa-exclamation-triangle';
+            iconEl.style.color = '#b58105';
+        }
+        if (countdownEl) {
+            countdownEl.innerText = formatDuration(remainingMs);
+        }
+
+        // Trigger 5-minute alert once
+        if (!active.warned5m) {
+            active.warned5m = true;
+            saveBookings(bookings);
+            playChimeSound('warning');
+            showWarning5mModal(active);
+            sendSystemNotification('Peringatan 5 Menit Terakhir', `Waktu peminjaman ${active.roomName} tersisa 5 menit.`);
+        }
+    } else {
+        // Expired state (<= 0)
+        widget.classList.remove('warning-5m');
+        widget.classList.add('expired');
+        if (iconEl) {
+            iconEl.className = 'fa fa-clock';
+            iconEl.style.color = '#d92550';
+        }
+        if (countdownEl) {
+            countdownEl.innerText = 'WAKTU HABIS';
+        }
+
+        // Trigger finished alert once
+        if (!active.warnedEnd) {
+            active.warnedEnd = true;
+            saveBookings(bookings);
+            playChimeSound('urgent');
+            showSessionEndedModal(active);
+            sendSystemNotification('Waktu Peminjaman Berakhir', `Waktu peminjaman ${active.roomName} telah habis. Silakan kembalikan kunci.`);
+        }
+    }
+}
+
+// Simulation helpers for instant user testing
+function simulate5mWarning() {
+    const bookings = getBookings();
+    const active = bookings.find(b => b.nim === CURRENT_USER.nim && b.status === 'Sedang Digunakan')
+        || bookings.find(b => b.status === 'Sedang Digunakan');
+    if (!active) {
+        alert('Tidak ada sesi aktif. Pastikan ada peminjaman berstatus "Sedang Digunakan".');
+        return;
+    }
+    const now = new Date();
+    active.scheduledEndAt = new Date(now.getTime() + (4 * 60 + 55) * 1000).toISOString();
+    active.warned5m = false; // Reset flag to trigger
+    saveBookings(bookings);
+    updateActiveSessionBanner();
+}
+
+function simulateEndWarning() {
+    const bookings = getBookings();
+    const active = bookings.find(b => b.nim === CURRENT_USER.nim && b.status === 'Sedang Digunakan')
+        || bookings.find(b => b.status === 'Sedang Digunakan');
+    if (!active) {
+        alert('Tidak ada sesi aktif. Pastikan ada peminjaman berstatus "Sedang Digunakan".');
+        return;
+    }
+    const now = new Date();
+    active.scheduledEndAt = new Date(now.getTime() - 2000).toISOString();
+    active.warnedEnd = false; // Reset flag to trigger
+    saveBookings(bookings);
+    updateActiveSessionBanner();
 }

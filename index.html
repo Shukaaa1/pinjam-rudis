@@ -67,6 +67,36 @@
                         ini.</p>
                 </div>
 
+                <!-- Live Active Session Sticky Widget -->
+                <div id="active-session-widget" class="active-session-widget hidden">
+                    <div class="active-session-info">
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                            <span class="badge badge-success"><i class="fa fa-key"></i> Sesi Aktif</span>
+                            <span id="active-session-status-tag" class="badge badge-info"><i class="fa fa-door-open"></i> Kunci Diserahkan</span>
+                        </div>
+                        <h4 id="active-session-room">Ruang Diskusi 1</h4>
+                        <p id="active-session-meta">Jadwal: 09.00 - 11.00 (Durasi 2 Jam) | Pemesan: Civitas STAN</p>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <div class="countdown-box">
+                            <div style="text-align:right;">
+                                <div style="font-size:0.7rem; color:#6c757d; font-weight:600; text-transform:uppercase;">Sisa Waktu</div>
+                                <div id="active-session-countdown" class="countdown-digits">00:00:00</div>
+                            </div>
+                            <i id="countdown-icon" class="fa fa-stopwatch" style="font-size:1.6rem; color:#3f6ad8;"></i>
+                        </div>
+                        <button id="btn-audio-toggle" class="btn btn-secondary btn-sm" onclick="toggleAudioChime()" title="Uji Nada Bel Peringatan">
+                            <i class="fa fa-volume-up"></i> Suara Aktif
+                        </button>
+                        <button class="btn btn-warning btn-sm" onclick="simulate5mWarning()" title="Simulasi Pengujian: Sisa 5 Menit">
+                            <i class="fa fa-vial"></i> Tes 5m
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="simulateEndWarning()" title="Simulasi Pengujian: Waktu Habis">
+                            <i class="fa fa-vial"></i> Tes Habis
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Nav Tabs -->
                 <div class="nav-tabs-custom">
                     <button class="tab-btn active" onclick="switchTab('tab-matrix')"><i class="fa fa-calendar-alt"></i>
@@ -324,6 +354,59 @@
                             Pemesanan</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Peringatan 5 Menit Terakhir -->
+    <div id="modal-warning-5m" class="modal-backdrop hidden">
+        <div class="modal-content" style="max-width: 500px; border-top: 4px solid #f7b924;">
+            <div class="modal-header" style="background:#fffdf0;">
+                <h5 style="color:#b58105;"><i class="fa fa-hourglass-half"></i> Peringatan: Sisa Waktu 5 Menit</h5>
+                <button class="modal-close" onclick="closeModal('modal-warning-5m')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size:0.95rem; line-height:1.5;">
+                    Waktu peminjaman untuk <strong><span id="warning-5m-room-name">Ruangan</span></strong> tersisa <strong>5 menit lagi</strong>.
+                </p>
+                <div style="background:#fff3cd; color:#856404; padding:10px 14px; border-radius:4px; font-size:0.85rem; border:1px solid #ffeeba;">
+                    <i class="fa fa-info-circle"></i> Mohon mulai merapikan barang bawaan dan mempersiapkan pengembalian kunci ke meja resepsionis agar tidak mengganggu kelompok peminjam berikutnya.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-warning" onclick="closeModal('modal-warning-5m')" style="font-weight:600;">
+                    <i class="fa fa-check"></i> Saya Mengerti
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Peringatan Waktu Habis & Checklist Pengembalian -->
+    <div id="modal-session-ended" class="modal-backdrop hidden">
+        <div class="modal-content" style="max-width: 540px; border-top: 4px solid #d92550;">
+            <div class="modal-header" style="background:#fff5f5;">
+                <h5 style="color:#d92550;"><i class="fa fa-clock"></i> Waktu Peminjaman Telah Selesai</h5>
+                <button class="modal-close" onclick="closeModal('modal-session-ended')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size:0.95rem; margin-bottom:10px;">
+                    Waktu penggunaan untuk <strong><span id="ended-room-name">Ruangan</span></strong> telah berakhir sesuai jadwal slot.
+                </p>
+                <div style="font-size:0.85rem; color:#495057; font-weight:600; margin-bottom:8px;">
+                    Daftar Periksa Sebelum Meninggalkan Ruangan:
+                </div>
+                <ul class="modal-checklist">
+                    <li><i class="fa fa-check-circle" style="color:#3ac47d;"></i> Pastikan AC dan Infokus/Proyektor telah dimatikan</li>
+                    <li><i class="fa fa-check-circle" style="color:#3ac47d;"></i> Pastikan lampu ruangan telah dipadamkan</li>
+                    <li><i class="fa fa-check-circle" style="color:#3ac47d;"></i> Pastikan papan tulis bersih dari coretan spidol</li>
+                    <li><i class="fa fa-check-circle" style="color:#3ac47d;"></i> Pastikan tidak ada sampah makanan atau minuman tertinggal</li>
+                    <li><i class="fa fa-key" style="color:#3f6ad8;"></i> Kembalikan kunci ke resepsionis (Lt. 1) & ambil kembali KTM</li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" onclick="closeModal('modal-session-ended')" style="font-weight:600;">
+                    <i class="fa fa-door-closed"></i> Selesai & Kembalikan Kunci
+                </button>
             </div>
         </div>
     </div>
