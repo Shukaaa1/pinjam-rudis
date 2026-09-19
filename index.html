@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,12 +8,14 @@
     <link rel="stylesheet" href="portal-style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+
 <body>
     <div class="app-container">
         <!-- Top App Header -->
         <header class="app-header">
             <div class="app-header__logo">
-                <img src="https://portal.pknstan.ac.id/assets/plugins/images/stan_ico.ico" alt="PKN STAN Logo" width="36" height="36">
+                <img src="https://portal.pknstan.ac.id/assets/plugins/images/stan_ico.ico" alt="PKN STAN Logo"
+                    width="36" height="36">
                 <strong>Civitas PKN STAN</strong>
             </div>
             <div class="app-header-user">
@@ -39,7 +42,9 @@
                     <li><a href="#"><i class="fa fa-graduation-cap"></i> Nilai</a></li>
                     <li><a href="#"><i class="fa fa-book"></i> Jadwal Kuliah</a></li>
                     <li><a href="#" class="active"><i class="fa fa-door-open"></i> Peminjaman Ruang Diskusi</a></li>
-                    <li><a href="admin.html" target="_blank" style="color: #d92550;"><i class="fa fa-user-shield"></i> Portal Admin / Resepsionis <i class="fa fa-external-link-alt" style="font-size:0.7rem; margin-left: auto;"></i></a></li>
+                    <li><a href="admin.html" target="_blank" style="color: #d92550;"><i class="fa fa-user-shield"></i>
+                            Portal Admin / Resepsionis <i class="fa fa-external-link-alt"
+                                style="font-size:0.7rem; margin-left: auto;"></i></a></li>
                 </ul>
             </aside>
 
@@ -48,62 +53,198 @@
                 <div class="app-page-title">
                     <div class="page-title-heading">
                         <h1>Ruang Diskusi</h1>
-                        <div class="page-title-subheading">Sistem Peminjaman & Monitoring Ruang Diskusi Perpustakaan (Gedung P)</div>
+                        <div class="page-title-subheading">Sistem Peminjaman & Monitoring Ruang Diskusi Perpustakaan
+                            (Gedung P)</div>
                     </div>
                 </div>
 
                 <!-- Info Banner -->
                 <div class="bg-info-banner">
-                    <h5 style="margin-top:0; font-size:1.1rem;"><i class="fa fa-info-circle"></i> Fasilitas Ruang Diskusi</h5>
-                    <p style="margin-bottom:0; font-size:0.9rem;">Perpustakaan menyediakan fasilitas ruangan untuk melakukan diskusi tertutup kelompok kecil. Silakan cek ketersediaan jam dan ruangan di bawah ini.</p>
+                    <h5 style="margin-top:0; font-size:1.1rem;"><i class="fa fa-info-circle"></i> Fasilitas Ruang
+                        Diskusi</h5>
+                    <p style="margin-bottom:0; font-size:0.9rem;">Perpustakaan menyediakan fasilitas ruangan untuk
+                        melakukan diskusi tertutup kelompok kecil. Silakan cek ketersediaan jam dan ruangan di bawah
+                        ini.</p>
                 </div>
 
                 <!-- Nav Tabs -->
                 <div class="nav-tabs-custom">
-                    <button class="tab-btn active" onclick="switchTab('tab-matrix')"><i class="fa fa-calendar-alt"></i> Real-Time Monitoring & Pemesanan</button>
-                    <button class="tab-btn" onclick="switchTab('tab-history')"><i class="fa fa-history"></i> Riwayat & Pembatalan Saya</button>
-                    <button class="tab-btn" onclick="switchTab('tab-rules')"><i class="fa fa-gavel"></i> Tata Cara & Aturan</button>
+                    <button class="tab-btn active" onclick="switchTab('tab-matrix')"><i class="fa fa-calendar-alt"></i>
+                        Real-Time Monitoring & Pemesanan</button>
+                    <button class="tab-btn" onclick="switchTab('tab-history')"><i class="fa fa-history"></i> Riwayat &
+                        Pembatalan Saya</button>
+                    <button class="tab-btn" onclick="switchTab('tab-rules')"><i class="fa fa-gavel"></i> Tata Cara &
+                        Aturan</button>
                 </div>
 
                 <!-- TAB 1: MATRIX GRID & PEMESANAN -->
                 <div id="tab-matrix" class="tab-content">
                     <div class="card">
                         <div class="card-header">
-                            <span><i class="fa fa-search-location"></i> Jadwal & Ketersediaan Ruang Diskusi (H-1 s.d H+7)</span>
+                            <span><i class="fa fa-search-location"></i> Jadwal & Ketersediaan Ruang Diskusi (H-1 s.d
+                                H+7)</span>
                             <div style="display:flex; align-items:center; gap:10px;">
-                                <label for="filter-date" style="font-size:0.85rem; font-weight:600; margin:0;">Tanggal:</label>
-                                <input type="date" id="filter-date" class="form-control" style="width: auto; padding: 0.3rem 0.5rem;" onchange="renderMatrixGrid()">
+                                <label for="filter-date"
+                                    style="font-size:0.85rem; font-weight:600; margin:0;">Tanggal:</label>
+                                <input type="date" id="filter-date" class="form-control"
+                                    style="width: auto; padding: 0.3rem 0.5rem;" onchange="renderMatrixGrid()">
                             </div>
                         </div>
                         <div class="card-body">
-                            <!-- Legend -->
-                            <div style="display:flex; gap:15px; margin-bottom:15px; font-size:0.85rem; align-items:center;">
-                                <span><strong style="color:#555;">Keterangan Status:</strong></span>
-                                <span class="badge badge-success"><i class="fa fa-check"></i> Tersedia (Klik untuk Pesan)</span>
-                                <span class="badge badge-danger"><i class="fa fa-lock"></i> Terpakai / Terisi</span>
-                                <span class="badge badge-warning"><i class="fa fa-clock"></i> Menunggu Kunci</span>
+                            <!-- Legend Status Warna -->
+                            <div
+                                style="display:flex; gap:15px; margin-bottom:15px; font-size:0.85rem; align-items:center; flex-wrap:wrap;">
+                                <span><strong style="color:#555;">Keterangan Status Warna:</strong></span>
+                                <span class="badge" style="background:#fcfdfe; color:#333; border:1px solid #ced4da;"><i
+                                        class="fa fa-square" style="color:#e8f4ff;"></i> Putih / Bersih: Tersedia (Klik
+                                    untuk Pilih)</span>
+                                <span class="badge badge-warning" style="background:#ffc107; color:#212529;"><i
+                                        class="fa fa-square"></i> Kuning: Dipesan (Menunggu Pengambilan Kunci)</span>
+                                <span class="badge badge-danger" style="background:#dc3545; color:#fff;"><i
+                                        class="fa fa-square"></i> Merah: Terpakai (Ruangan Sedang Digunakan)</span>
+                                <span class="badge"
+                                    style="background:#fff3cd; color:#856404; border:1px solid #ffeeba;"><i
+                                        class="fa fa-utensils"></i> Arsir Kuning: Istirahat (12.00 - 13.00)</span>
                             </div>
 
-                            <!-- Matrix Grid Table -->
+                            <!-- Matrix Grid / Gantt Chart Container -->
                             <div class="matrix-container">
-                                <table class="matrix-table">
+                                <table class="matrix-table gantt-table">
                                     <thead>
                                         <tr>
                                             <th style="width: 180px;">Ruangan & Kapasitas</th>
-                                            <th>08.00</th>
-                                            <th>09.00</th>
-                                            <th>10.00</th>
-                                            <th>11.00</th>
-                                            <th>13.00</th>
-                                            <th>14.00</th>
-                                            <th>15.00</th>
-                                            <th>16.00</th>
+                                            <th>08.00 - 09.00</th>
+                                            <th>09.00 - 10.00</th>
+                                            <th>10.00 - 11.00</th>
+                                            <th>11.00 - 12.00</th>
+                                            <th class="gantt-break-header" title="Jam Istirahat & Sterilisasi Ruangan">
+                                                <i class="fa fa-utensils"></i> 12.00 - 13.00<br><span
+                                                    style="font-weight:normal; font-size:0.7rem; color:#856404;">(Istirahat)</span>
+                                            </th>
+                                            <th>13.00 - 14.00</th>
+                                            <th>14.00 - 15.00</th>
+                                            <th>15.00 - 16.00</th>
                                         </tr>
                                     </thead>
                                     <tbody id="matrix-grid-body">
                                         <!-- Dynamic JS rendered rows -->
                                     </tbody>
                                 </table>
+                            </div>
+
+                            <!-- INLINE FORM PEMESANAN (Pojok Bawah Selebar Tabel) -->
+                            <div class="booking-panel-card"
+                                style="margin-top: 20px; background: #ffffff; border: 1px solid #ced4da; border-radius: 6px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                                <h5
+                                    style="margin-top:0; color: var(--primary-color); border-bottom: 2px solid #e9ecef; padding-bottom: 10px; display:flex; align-items:center; justify-content:space-between;">
+                                    <span><i class="fa fa-edit"></i> Form Pemesanan Ruang Diskusi</span>
+                                    <span style="font-size:0.8rem; font-weight:normal; color:#6c757d;">Klik slot pada
+                                        tabel di atas atau pilih langsung di bawah ini</span>
+                                </h5>
+
+                                <form id="booking-form" onsubmit="handleFormSubmit(event)">
+                                    <!-- Pre-filled Identitas Pemesan -->
+                                    <div
+                                        style="background:#f8f9fa; padding:10px 15px; border-radius:4px; margin-bottom:15px; border:1px solid #e9ecef;">
+                                        <div
+                                            style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px; font-size:0.85rem;">
+                                            <div><strong>Nama:</strong> <span id="form-nama">RADEN MAS GALIH CHONDRO
+                                                    KIRONO MANGUN KUSUMO</span></div>
+                                            <div><strong>NIM/NIP:</strong> <span id="form-nim">4131230001</span></div>
+                                            <div><strong>Prodi:</strong> <span id="form-prodi">Sarjana Terapan Manajemen
+                                                    Keuangan Dinasti</span></div>
+                                            <div><strong>Kelas:</strong> <span id="form-kelas">6 Sisfo 5</span></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Grid Pilihan Ruangan & Waktu -->
+                                    <div
+                                        style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:15px; margin-bottom:15px;">
+                                        <div class="form-group" style="margin-bottom:0;">
+                                            <label for="input-room" style="font-weight:600;"><i
+                                                    class="fa fa-door-open"></i> Pilih Ruangan *</label>
+                                            <select id="input-room" class="form-control" required
+                                                onchange="handleRoomSelectChange()">
+                                                <!-- Dynamic filled by JS -->
+                                            </select>
+                                        </div>
+
+                                        <div class="form-group" style="margin-bottom:0;">
+                                            <label for="input-slot" style="font-weight:600;"><i class="fa fa-clock"></i>
+                                                Jam Mulai *</label>
+                                            <select id="input-slot" class="form-control" required
+                                                onchange="handleTimeSlotSelectChange()">
+                                                <option value="08.00">08.00</option>
+                                                <option value="09.00">09.00</option>
+                                                <option value="10.00">10.00</option>
+                                                <option value="11.00">11.00</option>
+                                                <option value="13.00">13.00</option>
+                                                <option value="14.00">14.00</option>
+                                                <option value="15.00">15.00</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="form-group" style="margin-bottom:0;">
+                                            <label for="input-durasi" style="font-weight:600;"><i
+                                                    class="fa fa-hourglass-half"></i> Durasi *</label>
+                                            <select id="input-durasi" class="form-control" required
+                                                onchange="handleDurasiChange()">
+                                                <option value="1">1 Jam</option>
+                                                <option value="2" selected>2 Jam (Standar Maksimal)</option>
+                                                <option value="3">> 2 Jam (Khusus Lomba)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <!-- Time Constraint Notice Container -->
+                                    <div id="time-constraint-notice" class="hidden"
+                                        style="font-size:0.8rem; background:#fff3cd; color:#856404; padding:8px 12px; border-radius:4px; border:1px solid #ffeeba; margin-bottom:15px;">
+                                    </div>
+
+                                    <div
+                                        style="display:grid; grid-template-columns: 1fr 1fr 2fr; gap:15px; margin-bottom:15px;">
+                                        <div class="form-group" style="margin-bottom:0;">
+                                            <label for="input-hp" style="font-weight:600;">No. WhatsApp *</label>
+                                            <input type="tel" id="input-hp" class="form-control" value="081234567890"
+                                                required>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom:0;">
+                                            <label for="input-jumlah" style="font-weight:600;">Jumlah Pemakai *</label>
+                                            <input type="number" id="input-jumlah" class="form-control" min="3" max="20"
+                                                value="4" required>
+                                            <small id="room-cap-hint" class="text-muted"
+                                                style="font-size:0.75rem; color:#888;">Maksimal sesuai kapasitas
+                                                ruang.</small>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom:0;">
+                                            <label for="input-keperluan" style="font-weight:600;">Keperluan *</label>
+                                            <input type="text" id="input-keperluan" class="form-control"
+                                                placeholder="Diskusi kelompok / mentoring" value="Diskusi Kelompok"
+                                                required>
+                                        </div>
+                                    </div>
+
+                                    <!-- Optional Document Upload for >2 hours -->
+                                    <div id="doc-upload-group" class="form-group hidden"
+                                        style="background:#fff3cd; padding:10px; border-radius:4px; border:1px solid #ffeeba; margin-bottom:15px;">
+                                        <label for="input-doc" style="font-weight:600;"><i
+                                                class="fa fa-file-upload"></i> Unggah Dokumen Pendukung (ST / ND / Bukti
+                                            Lomba) *</label>
+                                        <input type="file" id="input-doc" class="form-control" accept=".pdf,.png,.jpg">
+                                        <small style="color:#856404; font-size:0.75rem;">Diperlukan untuk peminjaman
+                                            lebih dari 2 jam.</small>
+                                    </div>
+
+                                    <div
+                                        style="display:flex; justify-content:space-between; align-items:center; background:#e7f1ff; padding:10px 15px; border-radius:4px; color:#0c5460;">
+                                        <span style="font-size:0.8rem;"><i class="fa fa-exclamation-circle"></i>
+                                            Pengambilan kunci 5 menit sebelum jadwal di Resepsionis Lt. 1 dengan membawa
+                                            KTM.</span>
+                                        <button type="submit" class="btn btn-primary"
+                                            style="padding: 0.5rem 1.5rem; font-weight:600;"><i
+                                                class="fa fa-paper-plane"></i> Kirim Pemesanan</button>
+                                    </div>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -143,23 +284,37 @@
                             <span><i class="fa fa-file-contract"></i> Ketentuan & Aturan Penting Peminjaman</span>
                         </div>
                         <div class="card-body" style="line-height: 1.6;">
-                            <h5 style="color: var(--primary-color);"><i class="fa fa-clipboard-check"></i> Alur & Tata Cara Peminjaman</h5>
+                            <h5 style="color: var(--primary-color);"><i class="fa fa-clipboard-check"></i> Alur & Tata
+                                Cara Peminjaman</h5>
                             <ol>
-                                <li><strong>Pengambilan Kunci:</strong> Ambil kunci di Lobi Depan / Meja Resepsionis (Gedung P Lantai 1) 5 menit sebelum jadwal. Wajib menyerahkan <strong>KTM</strong> (atau Kartu Identitas lain jika belum ada KTM) atas nama pemesan.</li>
-                                <li><strong>Penggunaan:</strong> Isi Daftar Kunjungan pada tautan di depan pintu ruangan. Pastikan AC, Infokus, dan lampu mati, papan tulis bersih, serta tidak ada sampah.</li>
-                                <li><strong>Pengembalian:</strong> Kembalikan kunci ke resepsionis setelah selesai dan ambil kembali KTM/Kartu Identitas Anda.</li>
+                                <li><strong>Pengambilan Kunci:</strong> Ambil kunci di Lobi Depan / Meja Resepsionis
+                                    (Gedung P Lantai 1) 5 menit sebelum jadwal. Wajib menyerahkan <strong>KTM</strong>
+                                    (atau Kartu Identitas lain jika belum ada KTM) atas nama pemesan.</li>
+                                <li><strong>Penggunaan:</strong> Isi Daftar Kunjungan pada tautan di depan pintu
+                                    ruangan. Pastikan AC, Infokus, dan lampu mati, papan tulis bersih, serta tidak ada
+                                    sampah.</li>
+                                <li><strong>Pengembalian:</strong> Kembalikan kunci ke resepsionis setelah selesai dan
+                                    ambil kembali KTM/Kartu Identitas Anda.</li>
                             </ol>
 
                             <hr style="border-top: 1px dashed #ced4da; margin: 1.5rem 0;">
 
-                            <h5 style="color: var(--danger-color);"><i class="fa fa-exclamation-triangle"></i> Aturan & Sanksi</h5>
+                            <h5 style="color: var(--danger-color);"><i class="fa fa-exclamation-triangle"></i> Aturan &
+                                Sanksi</h5>
                             <ul>
-                                <li><strong>Toleransi Keterlambatan:</strong> Maksimal <strong>15 menit</strong>. Jika tidak hadir dalam 15 menit, pemesanan dianggap gugur dan dialihkan ke kelompok lain.</li>
+                                <li><strong>Toleransi Keterlambatan:</strong> Maksimal <strong>15 menit</strong>. Jika
+                                    tidak hadir dalam 15 menit, pemesanan dianggap gugur dan dialihkan ke kelompok lain.
+                                </li>
                                 <li><strong>Waktu Pemesanan:</strong> Paling cepat dilakukan pada H-1.</li>
-                                <li><strong>Kapasitas & Durasi:</strong> Minimal 3 orang, maksimal 10 orang (atau sesuai kapasitas ruangan). Durasi peminjaman maksimal 2 jam/hari.</li>
-                                <li><strong>Larangan Khusus:</strong> Dilarang makan, minum, dan tidur di dalam ruang diskusi. Kunci wajib dijaga (jika hilang wajib mengganti max H+1).</li>
-                                <li><strong>Pembatalan:</strong> Pembatalan paling lambat H-1 atau melalui menu "Riwayat Saya".</li>
-                                <li><strong style="color: var(--danger-color);">Sanksi Pemblokiran:</strong> Melanggar aturan akan dikenakan sanksi 1 kelas dilarang meminjam ruangan selama 1 semester.</li>
+                                <li><strong>Kapasitas & Durasi:</strong> Minimal 3 orang, maksimal 10 orang (atau sesuai
+                                    kapasitas ruangan). Durasi peminjaman maksimal 2 jam/hari.</li>
+                                <li><strong>Larangan Khusus:</strong> Dilarang makan, minum, dan tidur di dalam ruang
+                                    diskusi. Kunci wajib dijaga (jika hilang wajib mengganti max H+1).</li>
+                                <li><strong>Pembatalan:</strong> Pembatalan paling lambat H-1 atau melalui menu "Riwayat
+                                    Saya".</li>
+                                <li><strong style="color: var(--danger-color);">Sanksi Pemblokiran:</strong> Melanggar
+                                    aturan akan dikenakan sanksi 1 kelas dilarang meminjam ruangan selama 1 semester.
+                                </li>
                             </ul>
                         </div>
                     </div>
@@ -169,80 +324,8 @@
         </div>
     </div>
 
-    <!-- MODAL FORM PEMINJAMAN -->
-    <div id="booking-modal" class="modal-backdrop hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5><i class="fa fa-edit"></i> Formulir Pemesanan Ruang Diskusi</h5>
-                <button class="modal-close" onclick="closeModal('booking-modal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="booking-form" onsubmit="handleFormSubmit(event)">
-                    <!-- Pre-filled Data Pemesan -->
-                    <div style="background:#f8f9fa; padding:10px; border-radius:4px; margin-bottom:15px; border:1px solid #e9ecef;">
-                        <h6 style="margin-top:0; color:#555;"><i class="fa fa-user-check"></i> Identitas Pemesan (Auto-Filled)</h6>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; font-size:0.85rem;">
-                            <div><strong>Nama:</strong> <span id="form-nama">VERI GALIH SETIYO AJI</span></div>
-                            <div><strong>NIM/NIP:</strong> <span id="form-nim">4131230098</span></div>
-                            <div><strong>Prodi:</strong> <span id="form-prodi">Sarjana Terapan Manajemen Keuangan Negara</span></div>
-                            <div><strong>Kelas:</strong> <span id="form-kelas">4-01</span></div>
-                        </div>
-                    </div>
-
-                    <!-- Selected Target Slot -->
-                    <div class="form-group">
-                        <label><i class="fa fa-door-open"></i> Ruangan & Slot Terpilih</label>
-                        <input type="text" id="target-room-slot" class="form-control" readonly style="font-weight:bold; color:var(--primary-color);">
-                    </div>
-
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                        <div class="form-group">
-                            <label for="input-hp">Nomor Handphone (WhatsApp) *</label>
-                            <input type="tel" id="input-hp" class="form-control" value="081234567890" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="input-jumlah">Jumlah Pemakai (Orang) *</label>
-                            <input type="number" id="input-jumlah" class="form-control" min="3" max="20" value="4" required>
-                            <small id="room-cap-hint" class="text-muted" style="font-size:0.75rem; color:#888;"></small>
-                        </div>
-                    </div>
-
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                        <div class="form-group">
-                            <label for="input-durasi">Durasi Peminjaman *</label>
-                            <select id="input-durasi" class="form-control" required onchange="handleDurasiChange()">
-                                <option value="1">1 Jam</option>
-                                <option value="2" selected>2 Jam (Maksimal standar)</option>
-                                <option value="3">> 2 Jam (Khusus Persiapan Lomba)</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="input-keperluan">Keperluan *</label>
-                            <input type="text" id="input-keperluan" class="form-control" placeholder="Diskusi kelompok / mentoring" value="Diskusi Kelompok" required>
-                        </div>
-                    </div>
-
-                    <!-- Optional Document Upload for >2 hours -->
-                    <div id="doc-upload-group" class="form-group hidden" style="background:#fff3cd; padding:10px; border-radius:4px; border:1px solid #ffebaba;">
-                        <label for="input-doc"><i class="fa fa-file-upload"></i> Unggah Dokumen Pendukung (ST / ND / Bukti Lomba) *</label>
-                        <input type="file" id="input-doc" class="form-control" accept=".pdf,.png,.jpg">
-                        <small style="color:#856404; font-size:0.75rem;">Diperlukan untuk peminjaman lebih dari 2 jam.</small>
-                    </div>
-
-                    <div style="font-size:0.8rem; background:#e7f1ff; padding:10px; border-radius:4px; color:#0c5460; margin-top:10px;">
-                        <i class="fa fa-exclamation-circle"></i> Dengan mengirimkan formulir ini, Anda menyetujui aturan tata tertib dan bersedia menyerahkan KTM saat pengambilan kunci 5 menit sebelum jadwal.
-                    </div>
-
-                    <div class="modal-footer" style="margin-top:15px; padding-bottom:0;">
-                        <button type="button" class="btn btn-secondary" onclick="closeModal('booking-modal')">Batal</button>
-                        <button type="submit" class="btn btn-primary"><i class="fa fa-paper-plane"></i> Kirim Pemesanan</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
     <!-- Script Application Logic -->
     <script src="app.js"></script>
 </body>
+
 </html>

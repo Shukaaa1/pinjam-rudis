@@ -251,15 +251,75 @@ body {
     background: #fdfdfd;
 }
 
-.slot-btn {
-    width: 100%;
-    padding: 0.5rem 0.25rem;
-    border-radius: 0.25rem;
-    border: 1px solid transparent;
+/* Gantt Chart Table Extensions */
+.gantt-table {
+    min-width: 1100px;
+}
+
+.gantt-break-header {
+    background-color: #fff8e1 !important;
+    color: #856404;
+    border-left: 2px solid #ffeeba;
+    border-right: 2px solid #ffeeba;
+}
+
+.gantt-close-header {
+    background-color: #f8d7da !important;
+    color: #721c24;
+}
+
+.gantt-break-cell {
+    background: repeating-linear-gradient(
+        45deg,
+        #fff9e6,
+        #fff9e6 10px,
+        #fff3cd 10px,
+        #fff3cd 20px
+    ) !important;
+    color: #856404;
     font-size: 0.75rem;
     font-weight: bold;
+    vertical-align: middle;
+    border-left: 2px dashed #ffeeba;
+    border-right: 2px dashed #ffeeba;
+}
+
+.gantt-cell-booked {
+    background: #dc3545 !important;
+    color: #ffffff !important;
+    font-weight: 600;
+    font-size: 0.78rem;
+    padding: 0 4px !important;
+    vertical-align: middle;
+    text-align: center;
+    border-color: #bd2130 !important;
+}
+
+.gantt-cell-pending {
+    background: #ffc107 !important;
+    color: #212529 !important;
+    font-weight: 600;
+    font-size: 0.78rem;
+    padding: 0 4px !important;
+    vertical-align: middle;
+    text-align: center;
+    border-color: #d39e00 !important;
+}
+
+.gantt-available-cell {
+    background-color: #fcfdfe;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: background-color 0.2s ease;
+}
+
+.gantt-available-cell:hover {
+    background-color: #e8f4ff !important;
+}
+
+.gantt-available-cell-selected {
+    background-color: #d0e7ff !important;
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
 }
 
 .slot-available {

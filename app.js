@@ -98,8 +98,10 @@ document.addEventListener('DOMContentLoaded', () => {
         dateInput.value = getTodayDateString();
     }
 
+    populateRoomDropdown();
     renderMatrixGrid();
     renderMyBookings();
+    validateTimeSlotConstraints();
 
     // Auto sync when storage changes (Cross-Tab Live Sync)
     window.addEventListener('storage', () => {
@@ -110,25 +112,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Navigation Tab Switcher
-function switchTab(tabId) {
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+// Populate Room Select Dropdown
+function populateRoomDropdown() {
+    const roomSelect = document.getElementById('input-room');
+    if (!roomSelect) return;
 
-    event.currentTarget.classList.add('active');
-    document.getElementById(tabId).classList.remove('hidden');
-
-    if (tabId === 'tab-matrix') renderMatrixGrid();
-    if (tabId === 'tab-history') renderMyBookings();
+    let optionsHtml = '';
+    MASTER_ROOMS.forEach(room => {
+        optionsHtml += `<option value="${room.id}">${room.name} (${room.desc})</option>`;
+    });
+    roomSelect.innerHTML = optionsHtml;
 }
 
-// Render Matrix Grid Availability
+// Render Matrix Grid Availability (Clean Gantt Chart View without + buttons)
 function renderMatrixGrid() {
     const gridBody = document.getElementById('matrix-grid-body');
     if (!gridBody) return;
 
     const filterDate = document.getElementById('filter-date')?.value || getTodayDateString();
     const bookings = getBookings();
+
+    const selectedRoomId = document.getElementById('input-room')?.value || MASTER_ROOMS[0].id;
+    const selectedSlot = document.getElementById('input-slot')?.value || '08.00';
 
     let html = '';
     MASTER_ROOMS.forEach(room => {
@@ -138,8 +143,8 @@ function renderMatrixGrid() {
                     <small style="color:#6c757d;">${room.desc}</small>
                  </td>`;
 
-        TIME_SLOTS.forEach(slot => {
-            // Find active booking matching room, date, and slot
+        TIME_SLOTS.forEach((slot) => {
+            // Check if active booking exists for this room, date, and slot
             const activeBooking = bookings.find(b =>
                 b.roomId === room.id &&
                 b.date === filterDate &&
@@ -148,24 +153,35 @@ function renderMatrixGrid() {
             );
 
             if (activeBooking) {
-                if (activeBooking.status === 'Sedang Digunakan') {
-                    html += `<td>
-                                <button class="slot-btn slot-booked" title="Terpakai oleh ${activeBooking.nama}">
-                                    <i class="fa fa-lock"></i> Terpakai
-                                </button>
+                const isStartSlot = activeBooking.slot === slot;
+                const isBooked = activeBooking.status === 'Sedang Digunakan';
+                const cellClass = isBooked ? 'gantt-cell-booked' : 'gantt-cell-pending';
+                const icon = isBooked ? 'fa-lock' : 'fa-clock';
+                const label = isBooked ? 'Terpakai' : 'Dipesan';
+
+                if (isStartSlot) {
+                    html += `<td class="${cellClass}" title="${label} oleh ${activeBooking.nama} (${activeBooking.slot} - ${activeBooking.durasi} Jam)">
+                                &nbsp;
                              </td>`;
                 } else {
-                    html += `<td>
-                                <button class="slot-btn slot-pending" title="Menunggu pengambilan kunci">
-                                    <i class="fa fa-clock"></i> Dipesan
-                                </button>
+                    html += `<td class="${cellClass}" style="border-left:none;" title="Lanjutan ${label.toLowerCase()} oleh ${activeBooking.nama}">
+                                &nbsp;
                              </td>`;
                 }
             } else {
-                html += `<td>
-                            <button class="slot-btn slot-available" onclick="openBookingModal('${room.id}', '${room.name}', '${slot}', ${room.cap})">
-                                <i class="fa fa-plus-circle"></i> ${slot}
-                            </button>
+                const isSelected = (room.id === selectedRoomId && slot === selectedSlot);
+                const activeClass = isSelected ? 'gantt-available-cell-selected' : '';
+                
+                html += `<td class="gantt-available-cell ${activeClass}" 
+                             title="Tersedia - Klik untuk pilih ${room.name} Jam ${slot}"
+                             onclick="selectSlotFromGrid('${room.id}', '${slot}')">
+                         </td>`;
+            }
+
+            // Insert 12.00 - 13.00 Break Slot Column after 11.00
+            if (slot === '11.00') {
+                html += `<td class="gantt-break-cell" title="12.00 - 13.00 Jam Istirahat & Sterilisasi Ruangan">
+                            <i class="fa fa-utensils"></i> Istirahat
                          </td>`;
             }
         });
@@ -176,25 +192,74 @@ function renderMatrixGrid() {
     gridBody.innerHTML = html;
 }
 
+// Select slot directly by clicking a clean cell in Gantt table
+function selectSlotFromGrid(roomId, slot) {
+    const roomSelect = document.getElementById('input-room');
+    const slotSelect = document.getElementById('input-slot');
+
+    if (roomSelect) roomSelect.value = roomId;
+    if (slotSelect) slotSelect.value = slot;
+
+    handleRoomSelectChange();
+    handleTimeSlotSelectChange();
+    renderMatrixGrid();
+
+    // Smooth scroll to form panel if needed
+    document.querySelector('.booking-panel-card')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function handleRoomSelectChange() {
+    const roomId = document.getElementById('input-room')?.value;
+    const room = MASTER_ROOMS.find(r => r.id === roomId);
+    if (room) {
+        document.getElementById('room-cap-hint').innerText = `Maksimal kapasitas ${room.name}: ${room.cap} orang (Min 3 orang).`;
+    }
+    renderMatrixGrid();
+}
+
+function handleTimeSlotSelectChange() {
+    validateTimeSlotConstraints();
+    renderMatrixGrid();
+}
+
+// Dynamic Time Constraints Validation (11.00 & 15.00 limit to 1 hour max)
+function validateTimeSlotConstraints() {
+    const slot = document.getElementById('input-slot')?.value;
+    const durasiSelect = document.getElementById('input-durasi');
+    if (!durasiSelect) return;
+
+    const opt2 = durasiSelect.querySelector('option[value="2"]');
+    const opt3 = durasiSelect.querySelector('option[value="3"]');
+    const notice = document.getElementById('time-constraint-notice');
+
+    if (slot === '11.00' || slot === '15.00') {
+        durasiSelect.value = "1";
+        if (opt2) opt2.disabled = true;
+        if (opt3) opt3.disabled = true;
+
+        const hintText = slot === '11.00' 
+            ? '⏰ Catatan: Pada slot jam 11.00, durasi maksimal hanya 1 jam karena pukul 12.00 - 13.00 adalah jam istirahat.' 
+            : '⏰ Catatan: Pada slot jam 15.00, durasi maksimal hanya 1 jam karena ruang diskusi tutup pada pukul 16.00.';
+        
+        if (notice) {
+            notice.innerText = hintText;
+            notice.classList.remove('hidden');
+        }
+    } else {
+        if (opt2) opt2.disabled = false;
+        if (opt3) opt3.disabled = false;
+        if (notice) notice.classList.add('hidden');
+    }
+
+    handleDurasiChange();
+}
+
 // Helper check if slot is within duration
 function isSlotOccupied(startSlot, durasiHours, targetSlot) {
     const startIndex = TIME_SLOTS.indexOf(startSlot);
     const targetIndex = TIME_SLOTS.indexOf(targetSlot);
     if (startIndex === -1 || targetIndex === -1) return false;
     return targetIndex >= startIndex && targetIndex < (startIndex + durasiHours);
-}
-
-// Open Booking Modal with Selected Data
-let selectedSlotData = null;
-function openBookingModal(roomId, roomName, slot, roomCap) {
-    const filterDate = document.getElementById('filter-date')?.value || getTodayDateString();
-    selectedSlotData = { roomId, roomName, slot, date: filterDate, roomCap };
-
-    document.getElementById('target-room-slot').value = `${roomName} (${filterDate} - Jam ${slot})`;
-    document.getElementById('room-cap-hint').innerText = `Kapasitas maksimal ruangan ini: ${roomCap} orang (Minimal 3 orang).`;
-
-    const modal = document.getElementById('booking-modal');
-    modal.classList.remove('hidden');
 }
 
 function closeModal(modalId) {
@@ -211,26 +276,48 @@ function handleDurasiChange() {
     }
 }
 
-// Submit New Booking Form
+/// Submit New Booking Form
 function handleFormSubmit(e) {
     e.preventDefault();
-    if (!selectedSlotData) return;
+
+    const roomId = document.getElementById('input-room').value;
+    const slot = document.getElementById('input-slot').value;
+    const room = MASTER_ROOMS.find(r => r.id === roomId);
+    const filterDate = document.getElementById('filter-date')?.value || getTodayDateString();
 
     const hp = document.getElementById('input-hp').value;
     const jumlah = parseInt(document.getElementById('input-jumlah').value);
     const durasi = parseInt(document.getElementById('input-durasi').value);
     const keperluan = document.getElementById('input-keperluan').value;
 
+    if (!room) {
+        alert('Ruangan tidak valid.');
+        return;
+    }
+
     if (jumlah < 3) {
         alert('Sesuai aturan, peminjaman minimal 3 orang per kelompok.');
         return;
     }
-    if (jumlah > selectedSlotData.roomCap) {
-        alert(`Jumlah anggota melebihi kapasitas ruangan (Maksimal ${selectedSlotData.roomCap} orang).`);
+    if (jumlah > room.cap) {
+        alert(`Jumlah anggota melebihi kapasitas ruangan (Maksimal ${room.cap} orang).`);
         return;
     }
 
     const bookings = getBookings();
+
+    // Check overlap for target slot & duration
+    const isOverlap = bookings.some(b => 
+        b.roomId === roomId &&
+        b.date === filterDate &&
+        ['Menunggu Kunci', 'Sedang Digunakan'].includes(b.status) &&
+        TIME_SLOTS.some(s => isSlotOccupied(b.slot, b.durasi, s) && isSlotOccupied(slot, durasi, s))
+    );
+
+    if (isOverlap) {
+        alert('Maaf, slot waktu yang Anda pilih bertabrakan dengan peminjaman lain pada ruangan ini.');
+        return;
+    }
 
     const newBooking = {
         id: 'BK-' + Math.floor(1000 + Math.random() * 9000),
@@ -239,10 +326,10 @@ function handleFormSubmit(e) {
         prodi: CURRENT_USER.prodi,
         kelas: CURRENT_USER.kelas,
         hp: hp,
-        roomId: selectedSlotData.roomId,
-        roomName: selectedSlotData.roomName,
-        date: selectedSlotData.date,
-        slot: selectedSlotData.slot,
+        roomId: room.id,
+        roomName: room.name,
+        date: filterDate,
+        slot: slot,
         durasi: durasi,
         jumlah: jumlah,
         keperluan: keperluan,
@@ -251,11 +338,10 @@ function handleFormSubmit(e) {
         createdAt: new Date().toISOString()
     };
 
-    bookings.unshift(newBooking);
+    bookings.push(newBooking);
     saveBookings(bookings);
 
-    closeModal('booking-modal');
-    alert(`Pemesanan Berhasil!\nKode Booking Anda: ${newBooking.id}\nSilakan ambil kunci di Meja Resepsionis (Gedung P Lantai 1) 5 menit sebelum jadwal.`);
+    alert(`🎉 Pemesanan Berhasil! Silakan ambil kunci di Resepsionis Lt. 1 dengan menyerahkan KTM 5 menit sebelum jam ${slot}.`);
 
     renderMatrixGrid();
     renderMyBookings();
