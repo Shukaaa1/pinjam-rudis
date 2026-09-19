@@ -28,12 +28,24 @@
             <div class="app-page-title" style="background:white; padding:1.2rem; border-radius:0.45rem; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);">
                 <div class="page-title-heading">
                     <h1>Monitoring & Serah Terima Kunci Ruang Diskusi</h1>
-                    <div class="page-title-subheading">Panel Kontrol Petugas Perpustakaan untuk Verifikasi KTM, Kunci, dan Pembatalan Keterlambatan</div>
+                    <div class="page-title-subheading">Panel Kontrol Petugas Perpustakaan untuk Monitoring Ruangan, Penyerahan Kunci, dan Pembatalan Keterlambatan</div>
                 </div>
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                     <span class="badge badge-info" style="font-size:0.8rem; padding:0.45rem 0.65rem;"><i class="fa fa-robot"></i> Auto-Gugur Aktif (15 Menit)</span>
                     <button class="btn btn-warning btn-sm" onclick="triggerManualExpiryCheck()"><i class="fa fa-stopwatch"></i> Cek Keterlambatan</button>
                     <button class="btn btn-secondary btn-sm" onclick="location.reload()"><i class="fa fa-sync"></i> Refresh Data</button>
+                </div>
+            </div>
+
+            <!-- Live Status Grid Preview (Top Priority for Room Monitoring) -->
+            <div class="card">
+                <div class="card-header">
+                    <span><i class="fa fa-th"></i> Denah / Visualisasi Ketersediaan Ruangan Live</span>
+                </div>
+                <div class="card-body">
+                    <div id="admin-room-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap:15px;">
+                        <!-- Dynamic JS rendered room cards -->
+                    </div>
                 </div>
             </div>
 
@@ -82,7 +94,6 @@
                                     <th>Pemesan & Kontak</th>
                                     <th>Prodi & Kelas</th>
                                     <th>Ruangan & Jam</th>
-                                    <th>Verifikasi Identitas</th>
                                     <th>Status Peminjaman</th>
                                     <th style="text-align:center;">Aksi Resepsionis</th>
                                 </tr>
@@ -91,18 +102,6 @@
                                 <!-- Dynamic JS rendered -->
                             </tbody>
                         </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Live Status Grid Preview -->
-            <div class="card">
-                <div class="card-header">
-                    <span><i class="fa fa-th"></i> Denah / Visualisasi Ketersediaan Ruangan Live</span>
-                </div>
-                <div class="card-body">
-                    <div id="admin-room-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap:15px;">
-                        <!-- Dynamic JS rendered room cards -->
                     </div>
                 </div>
             </div>

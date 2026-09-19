@@ -583,7 +583,7 @@ function renderAdminTable() {
     document.getElementById('stat-cancelled').innerText = bookings.filter(b => ['Dibatalkan', 'Gugur (>15m)'].includes(b.status)).length;
 
     if (filtered.length === 0) {
-        body.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#888;">Tidak ada data peminjaman ditemukan.</td></tr>`;
+        body.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#888;">Tidak ada data peminjaman ditemukan.</td></tr>`;
         return;
     }
 
@@ -629,16 +629,11 @@ function renderAdminTable() {
             `;
         }
 
-        const ktmCheckbox = `<label style="font-size:0.8rem; cursor:pointer;">
-                                <input type="checkbox" ${b.ktmVerified ? 'checked' : ''} onchange="toggleKtmVerification('${b.id}', this.checked)"> KTM Diverifikasi
-                             </label>`;
-
         html += `<tr>
                     <td><strong>${b.id}</strong></td>
                     <td><strong>${b.nama}</strong><br><small style="color:#6c757d;">NIM: ${b.nim} | HP: ${b.hp}</small></td>
                     <td>${b.prodi}<br><small style="color:#6c757d;">Kelas: ${b.kelas}</small></td>
                     <td><strong>${b.roomName}</strong><br><small style="color:#6c757d;">Tgl: ${b.date} | Jam ${b.slot} (${b.durasi} Jam)</small></td>
-                    <td>${ktmCheckbox}</td>
                     <td>${statusBadge}</td>
                     <td style="text-align:center;">${actionBtns}</td>
                  </tr>`;
@@ -647,25 +642,10 @@ function renderAdminTable() {
     body.innerHTML = html;
 }
 
-function toggleKtmVerification(bookingId, isChecked) {
-    const bookings = getBookings();
-    const target = bookings.find(b => b.id === bookingId);
-    if (target) {
-        target.ktmVerified = isChecked;
-        saveBookings(bookings);
-    }
-}
-
 function adminHandoverKey(bookingId) {
     const bookings = getBookings();
     const target = bookings.find(b => b.id === bookingId);
     if (target) {
-        if (!target.ktmVerified) {
-            if (!confirm('KTM mahasiswa belum dicentang sebagai terverifikasi. Apakah Anda yakin ingin tetap menyerahkan kunci?')) {
-                return;
-            }
-            target.ktmVerified = true;
-        }
         const now = new Date();
         target.status = 'Sedang Digunakan';
         target.startedAt = now.toISOString();
