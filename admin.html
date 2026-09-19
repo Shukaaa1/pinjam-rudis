@@ -30,7 +30,9 @@
                     <h1>Monitoring & Serah Terima Kunci Ruang Diskusi</h1>
                     <div class="page-title-subheading">Panel Kontrol Petugas Perpustakaan untuk Verifikasi KTM, Kunci, dan Pembatalan Keterlambatan</div>
                 </div>
-                <div>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <span class="badge badge-info" style="font-size:0.8rem; padding:0.45rem 0.65rem;"><i class="fa fa-robot"></i> Auto-Gugur Aktif (15 Menit)</span>
+                    <button class="btn btn-warning btn-sm" onclick="triggerManualExpiryCheck()"><i class="fa fa-stopwatch"></i> Cek Keterlambatan</button>
                     <button class="btn btn-secondary btn-sm" onclick="location.reload()"><i class="fa fa-sync"></i> Refresh Data</button>
                 </div>
             </div>

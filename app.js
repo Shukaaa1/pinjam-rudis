@@ -74,14 +74,122 @@ function getTodayDateString() {
     return today.toISOString().split('T')[0];
 }
 
-// Load Bookings from localStorage or Seed
+// Helper to parse date (YYYY-MM-DD) and slot (HH.MM) into Date object
+function getSlotDateTime(dateStr, slotStr) {
+    if (!dateStr || !slotStr) return null;
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return null;
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    
+    const timeParts = slotStr.replace('.', ':').split(':');
+    const hour = parseInt(timeParts[0], 10);
+    const minute = parseInt(timeParts[1] || '0', 10);
+    
+    return new Date(year, month, day, hour, minute, 0, 0);
+}
+
+// Check and auto-expire bookings that exceeded 15-minute tolerance without key pickup
+function checkAutoExpireBookings(notify = false) {
+    const saved = localStorage.getItem('pinjam_rudis_bookings');
+    if (!saved) return false;
+    
+    let bookings;
+    try {
+        bookings = JSON.parse(saved);
+    } catch (e) {
+        return false;
+    }
+    
+    if (!Array.isArray(bookings) || bookings.length === 0) return false;
+
+    const now = new Date();
+    const GRACE_PERIOD_MS = 15 * 60 * 1000; // Toleransi 15 menit
+    let changed = false;
+    let expiredCount = 0;
+
+    bookings.forEach(b => {
+        if (b.status === 'Menunggu Kunci') {
+            const startDateTime = getSlotDateTime(b.date, b.slot);
+            if (startDateTime) {
+                const deadline = new Date(startDateTime.getTime() + GRACE_PERIOD_MS);
+                if (now > deadline) {
+                    b.status = 'Gugur (>15m)';
+                    b.gugurReason = 'Otomatis gugur oleh sistem: Kunci tidak diambil dalam batas toleransi 15 menit.';
+                    b.gugurAt = now.toISOString();
+                    changed = true;
+                    expiredCount++;
+                }
+            }
+        }
+    });
+
+    if (changed) {
+        localStorage.setItem('pinjam_rudis_bookings', JSON.stringify(bookings));
+        if (typeof renderMatrixGrid === 'function') renderMatrixGrid();
+        if (typeof renderMyBookings === 'function') renderMyBookings();
+        if (typeof renderAdminTable === 'function') renderAdminTable();
+        if (typeof renderAdminRoomGrid === 'function') renderAdminRoomGrid();
+        window.dispatchEvent(new Event('storage'));
+        
+        if (notify && expiredCount > 0) {
+            console.log(`[Auto-Expire] ${expiredCount} pemesanan otomatis digugurkan karena lewat 15 menit.`);
+        }
+        return true;
+    }
+    return false;
+}
+
+// Manual trigger helper for testing / admin button
+function triggerManualExpiryCheck() {
+    const updated = checkAutoExpireBookings(true);
+    if (updated) {
+        alert('Pengecekan selesai: Pemesanan yang melewati batas toleransi 15 menit berhasil digugurkan secara otomatis.');
+    } else {
+        alert('Pengecekan selesai: Tidak ada pemesanan yang melewati batas toleransi 15 menit saat ini.');
+    }
+}
+
+// Load Bookings from localStorage or Seed with real-time auto-expiry check
 function getBookings() {
     const saved = localStorage.getItem('pinjam_rudis_bookings');
+    let bookings;
     if (!saved) {
-        localStorage.setItem('pinjam_rudis_bookings', JSON.stringify(SEED_BOOKINGS));
-        return SEED_BOOKINGS;
+        bookings = SEED_BOOKINGS;
+        localStorage.setItem('pinjam_rudis_bookings', JSON.stringify(bookings));
+    } else {
+        try {
+            bookings = JSON.parse(saved);
+        } catch (e) {
+            bookings = SEED_BOOKINGS;
+        }
     }
-    return JSON.parse(saved);
+
+    // Auto-check inline to ensure returned bookings always reflect 15-minute tolerance
+    const now = new Date();
+    const GRACE_PERIOD_MS = 15 * 60 * 1000;
+    let changed = false;
+    bookings.forEach(b => {
+        if (b.status === 'Menunggu Kunci') {
+            const startDateTime = getSlotDateTime(b.date, b.slot);
+            if (startDateTime) {
+                const deadline = new Date(startDateTime.getTime() + GRACE_PERIOD_MS);
+                if (now > deadline) {
+                    b.status = 'Gugur (>15m)';
+                    b.gugurReason = 'Otomatis gugur oleh sistem: Kunci tidak diambil dalam batas toleransi 15 menit.';
+                    b.gugurAt = now.toISOString();
+                    changed = true;
+                }
+            }
+        }
+    });
+
+    if (changed) {
+        localStorage.setItem('pinjam_rudis_bookings', JSON.stringify(bookings));
+    }
+
+    return bookings;
 }
 
 // Save Bookings to localStorage and Dispatch Event
@@ -92,6 +200,9 @@ function saveBookings(bookings) {
 
 // App Initialization
 document.addEventListener('DOMContentLoaded', () => {
+    // Run initial auto-expire check
+    checkAutoExpireBookings(false);
+
     // Set default date picker to today
     const dateInput = document.getElementById('filter-date');
     if (dateInput) {
@@ -102,6 +213,11 @@ document.addEventListener('DOMContentLoaded', () => {
     renderMatrixGrid();
     renderMyBookings();
     validateTimeSlotConstraints();
+
+    // Periodic auto-expiry check every 10 seconds
+    setInterval(() => {
+        checkAutoExpireBookings(true);
+    }, 10000);
 
     // Auto sync when storage changes (Cross-Tab Live Sync)
     window.addEventListener('storage', () => {
@@ -364,13 +480,36 @@ function renderMyBookings() {
         return;
     }
 
+    const now = new Date();
+    const GRACE_PERIOD_MS = 15 * 60 * 1000;
+
     let html = '';
     bookings.forEach(b => {
         let badgeClass = 'badge-secondary';
-        if (b.status === 'Menunggu Kunci') badgeClass = 'badge-warning';
-        if (b.status === 'Sedang Digunakan') badgeClass = 'badge-success';
-        if (b.status === 'Selesai') badgeClass = 'badge-info';
-        if (b.status === 'Dibatalkan' || b.status === 'Gugur (>15m)') badgeClass = 'badge-danger';
+        let statusSubtext = '';
+
+        if (b.status === 'Menunggu Kunci') {
+            badgeClass = 'badge-warning';
+            const startDateTime = getSlotDateTime(b.date, b.slot);
+            if (startDateTime) {
+                const deadline = new Date(startDateTime.getTime() + GRACE_PERIOD_MS);
+                if (now >= startDateTime && now <= deadline) {
+                    const remainingMin = Math.max(1, Math.ceil((deadline - now) / 60000));
+                    statusSubtext = `<br><small style="color:#b58105; font-weight:600;"><i class="fa fa-stopwatch"></i> Ambil kunci s.d ${deadline.toTimeString().substring(0, 5)} (sisa ${remainingMin}m)</small>`;
+                } else if (now < startDateTime) {
+                    statusSubtext = `<br><small style="color:#6c757d;">Ambil kunci 5 menit sebelum ${b.slot}</small>`;
+                }
+            }
+        } else if (b.status === 'Sedang Digunakan') {
+            badgeClass = 'badge-success';
+        } else if (b.status === 'Selesai') {
+            badgeClass = 'badge-info';
+        } else if (b.status === 'Gugur (>15m)') {
+            badgeClass = 'badge-danger';
+            statusSubtext = `<br><small style="color:#dc3545;">Gugur: kunci tidak diambil >15 menit</small>`;
+        } else if (b.status === 'Dibatalkan') {
+            badgeClass = 'badge-danger';
+        }
 
         let cancelBtn = '';
         if (['Menunggu Kunci', 'Sedang Digunakan'].includes(b.status)) {
@@ -383,7 +522,7 @@ function renderMyBookings() {
                     <td>${b.date}<br><small style="color:#6c757d;">Jam ${b.slot}</small></td>
                     <td>${b.durasi} Jam</td>
                     <td>${b.keperluan}</td>
-                    <td><span class="badge ${badgeClass}">${b.status}</span></td>
+                    <td><span class="badge ${badgeClass}">${b.status}</span>${statusSubtext}</td>
                     <td>${cancelBtn}</td>
                  </tr>`;
     });
@@ -433,13 +572,35 @@ function renderAdminTable() {
         return;
     }
 
+    const now = new Date();
+    const GRACE_PERIOD_MS = 15 * 60 * 1000;
+
     let html = '';
     filtered.forEach(b => {
         let statusBadge = `<span class="badge badge-secondary">${b.status}</span>`;
-        if (b.status === 'Menunggu Kunci') statusBadge = `<span class="badge badge-warning"><i class="fa fa-clock"></i> Menunggu Kunci</span>`;
-        if (b.status === 'Sedang Digunakan') statusBadge = `<span class="badge badge-success"><i class="fa fa-key"></i> Kunci Diserahkan</span>`;
-        if (b.status === 'Selesai') statusBadge = `<span class="badge badge-info"><i class="fa fa-check-double"></i> Selesai</span>`;
-        if (b.status === 'Dibatalkan' || b.status === 'Gugur (>15m)') statusBadge = `<span class="badge badge-danger">${b.status}</span>`;
+        if (b.status === 'Menunggu Kunci') {
+            const startDateTime = getSlotDateTime(b.date, b.slot);
+            let toleranceNote = '';
+            if (startDateTime) {
+                const deadline = new Date(startDateTime.getTime() + GRACE_PERIOD_MS);
+                if (now >= startDateTime && now <= deadline) {
+                    const remainingMin = Math.max(1, Math.ceil((deadline - now) / 60000));
+                    toleranceNote = `<br><small style="color:#b58105; font-weight:600;"><i class="fa fa-stopwatch"></i> Toleransi: sisa ${remainingMin} menit</small>`;
+                } else if (now < startDateTime) {
+                    toleranceNote = `<br><small style="color:#6c757d;">Mulai jam ${b.slot}</small>`;
+                }
+            }
+            statusBadge = `<span class="badge badge-warning"><i class="fa fa-clock"></i> Menunggu Kunci</span>${toleranceNote}`;
+        } else if (b.status === 'Sedang Digunakan') {
+            statusBadge = `<span class="badge badge-success"><i class="fa fa-key"></i> Kunci Diserahkan</span>`;
+        } else if (b.status === 'Selesai') {
+            statusBadge = `<span class="badge badge-info"><i class="fa fa-check-double"></i> Selesai</span>`;
+        } else if (b.status === 'Gugur (>15m)') {
+            const reason = b.gugurReason ? `<br><small style="color:#dc3545;">${b.gugurReason}</small>` : `<br><small style="color:#dc3545;">Otomatis dibatalkan (>15m)</small>`;
+            statusBadge = `<span class="badge badge-danger"><i class="fa fa-user-slash"></i> Gugur (>15m)</span>${reason}`;
+        } else if (b.status === 'Dibatalkan') {
+            statusBadge = `<span class="badge badge-danger">${b.status}</span>`;
+        }
 
         let actionBtns = '';
         if (b.status === 'Menunggu Kunci') {
@@ -517,6 +678,8 @@ function adminMarkGugur(bookingId) {
     const target = bookings.find(b => b.id === bookingId);
     if (target) {
         target.status = 'Gugur (>15m)';
+        target.gugurReason = 'Digugurkan manual oleh petugas resepsionis (terlambat >15 menit).';
+        target.gugurAt = new Date().toISOString();
         saveBookings(bookings);
         renderAdminTable();
         renderAdminRoomGrid();
