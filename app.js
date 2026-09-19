@@ -205,8 +205,11 @@ function selectSlotFromGrid(roomId, slot) {
     handleTimeSlotSelectChange();
     renderMatrixGrid();
 
-    // Smooth scroll to form panel if needed
-    document.querySelector('.booking-panel-card')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    // Show the booking modal
+    const modal = document.getElementById('booking-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
 }
 
 function handleRoomSelectChange() {
@@ -344,6 +347,7 @@ function handleFormSubmit(e) {
 
     alert(`🎉 Pemesanan Berhasil! Silakan ambil kunci di Resepsionis Lt. 1 dengan menyerahkan KTM 5 menit sebelum jam ${slot}.`);
 
+    closeModal('booking-modal');
     renderMatrixGrid();
     renderMyBookings();
 }

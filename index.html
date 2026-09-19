@@ -132,17 +132,98 @@
                                 </table>
                             </div>
 
-                            <!-- INLINE FORM PEMESANAN (Pojok Bawah Selebar Tabel) -->
-                            <div class="booking-panel-card"
-                                style="margin-top: 20px; background: #ffffff; border: 1px solid #ced4da; border-radius: 6px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-                                <h5
-                                    style="margin-top:0; color: var(--primary-color); border-bottom: 2px solid #e9ecef; padding-bottom: 10px; display:flex; align-items:center; justify-content:space-between;">
-                                    <span><i class="fa fa-edit"></i> Form Pemesanan Ruang Diskusi</span>
-                                    <span style="font-size:0.8rem; font-weight:normal; color:#6c757d;">Klik slot pada
-                                        tabel di atas atau pilih langsung di bawah ini</span>
-                                </h5>
+                            
+                        </div>
+                    </div>
+                </div>
 
-                                <form id="booking-form" onsubmit="handleFormSubmit(event)">
+                <!-- TAB 2: RIWAYAT & PEMBATALAN SAYA -->
+                <div id="tab-history" class="tab-content hidden">
+                    <div class="card">
+                        <div class="card-header">
+                            <span><i class="fa fa-list"></i> Daftar Peminjaman Saya</span>
+                        </div>
+                        <div class="card-body">
+                            <table class="table-custom">
+                                <thead>
+                                    <tr>
+                                        <th>ID / Kode</th>
+                                        <th>Ruangan</th>
+                                        <th>Tanggal & Jam</th>
+                                        <th>Durasi</th>
+                                        <th>Keperluan</th>
+                                        <th>Status</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="my-bookings-body">
+                                    <!-- Dynamic JS rendered -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: TATA CARA & ATURAN -->
+                <div id="tab-rules" class="tab-content hidden">
+                    <div class="card">
+                        <div class="card-header">
+                            <span><i class="fa fa-file-contract"></i> Ketentuan & Aturan Penting Peminjaman</span>
+                        </div>
+                        <div class="card-body" style="line-height: 1.6;">
+                            <h5 style="color: var(--primary-color);"><i class="fa fa-clipboard-check"></i> Alur & Tata
+                                Cara Peminjaman</h5>
+                            <ol>
+                                <li><strong>Pengambilan Kunci:</strong> Ambil kunci di Lobi Depan / Meja Resepsionis
+                                    (Gedung P Lantai 1) 5 menit sebelum jadwal. Wajib menyerahkan <strong>KTM</strong>
+                                    (atau Kartu Identitas lain jika belum ada KTM) atas nama pemesan.</li>
+                                <li><strong>Penggunaan:</strong> Isi Daftar Kunjungan pada tautan di depan pintu
+                                    ruangan. Pastikan AC, Infokus, dan lampu mati, papan tulis bersih, serta tidak ada
+                                    sampah.</li>
+                                <li><strong>Pengembalian:</strong> Kembalikan kunci ke resepsionis setelah selesai dan
+                                    ambil kembali KTM/Kartu Identitas Anda.</li>
+                            </ol>
+
+                            <hr style="border-top: 1px dashed #ced4da; margin: 1.5rem 0;">
+
+                            <h5 style="color: var(--danger-color);"><i class="fa fa-exclamation-triangle"></i> Aturan &
+                                Sanksi</h5>
+                            <ul>
+                                <li><strong>Toleransi Keterlambatan:</strong> Maksimal <strong>15 menit</strong>. Jika
+                                    tidak hadir dalam 15 menit, pemesanan dianggap gugur dan dialihkan ke kelompok lain.
+                                </li>
+                                <li><strong>Waktu Pemesanan:</strong> Paling cepat dilakukan pada H-1.</li>
+                                <li><strong>Kapasitas & Durasi:</strong> Minimal 3 orang, maksimal 10 orang (atau sesuai
+                                    kapasitas ruangan). Durasi peminjaman maksimal 2 jam/hari.</li>
+                                <li><strong>Larangan Khusus:</strong> Dilarang makan, minum, dan tidur di dalam ruang
+                                    diskusi. Kunci wajib dijaga (jika hilang wajib mengganti max H+1).</li>
+                                <li><strong>Pembatalan:</strong> Pembatalan paling lambat H-1 atau melalui menu "Riwayat
+                                    Saya".</li>
+                                <li><strong style="color: var(--danger-color);">Sanksi Pemblokiran:</strong> Melanggar
+                                    aturan akan dikenakan sanksi 1 kelas dilarang meminjam ruangan selama 1 semester.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    
+    <!-- Modal Form Pemesanan -->
+    <div id="booking-modal" class="modal-backdrop hidden">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h5><i class="fa fa-edit"></i> Form Pemesanan Ruang Diskusi</h5>
+                <button class="modal-close" onclick="closeModal('booking-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 15px; font-size: 0.9rem; color: #6c757d;">
+                    Silakan lengkapi data pemesanan di bawah ini. Pastikan Anda telah memilih jadwal yang tepat.
+                </div>
+                <form id="booking-form" onsubmit="handleFormSubmit(event)">
                                     <!-- Pre-filled Identitas Pemesan -->
                                     <div
                                         style="background:#f8f9fa; padding:10px 15px; border-radius:4px; margin-bottom:15px; border:1px solid #e9ecef;">
@@ -245,82 +326,7 @@
                                                 class="fa fa-paper-plane"></i> Kirim Pemesanan</button>
                                     </div>
                                 </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TAB 2: RIWAYAT & PEMBATALAN SAYA -->
-                <div id="tab-history" class="tab-content hidden">
-                    <div class="card">
-                        <div class="card-header">
-                            <span><i class="fa fa-list"></i> Daftar Peminjaman Saya</span>
-                        </div>
-                        <div class="card-body">
-                            <table class="table-custom">
-                                <thead>
-                                    <tr>
-                                        <th>ID / Kode</th>
-                                        <th>Ruangan</th>
-                                        <th>Tanggal & Jam</th>
-                                        <th>Durasi</th>
-                                        <th>Keperluan</th>
-                                        <th>Status</th>
-                                        <th>Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="my-bookings-body">
-                                    <!-- Dynamic JS rendered -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TAB 3: TATA CARA & ATURAN -->
-                <div id="tab-rules" class="tab-content hidden">
-                    <div class="card">
-                        <div class="card-header">
-                            <span><i class="fa fa-file-contract"></i> Ketentuan & Aturan Penting Peminjaman</span>
-                        </div>
-                        <div class="card-body" style="line-height: 1.6;">
-                            <h5 style="color: var(--primary-color);"><i class="fa fa-clipboard-check"></i> Alur & Tata
-                                Cara Peminjaman</h5>
-                            <ol>
-                                <li><strong>Pengambilan Kunci:</strong> Ambil kunci di Lobi Depan / Meja Resepsionis
-                                    (Gedung P Lantai 1) 5 menit sebelum jadwal. Wajib menyerahkan <strong>KTM</strong>
-                                    (atau Kartu Identitas lain jika belum ada KTM) atas nama pemesan.</li>
-                                <li><strong>Penggunaan:</strong> Isi Daftar Kunjungan pada tautan di depan pintu
-                                    ruangan. Pastikan AC, Infokus, dan lampu mati, papan tulis bersih, serta tidak ada
-                                    sampah.</li>
-                                <li><strong>Pengembalian:</strong> Kembalikan kunci ke resepsionis setelah selesai dan
-                                    ambil kembali KTM/Kartu Identitas Anda.</li>
-                            </ol>
-
-                            <hr style="border-top: 1px dashed #ced4da; margin: 1.5rem 0;">
-
-                            <h5 style="color: var(--danger-color);"><i class="fa fa-exclamation-triangle"></i> Aturan &
-                                Sanksi</h5>
-                            <ul>
-                                <li><strong>Toleransi Keterlambatan:</strong> Maksimal <strong>15 menit</strong>. Jika
-                                    tidak hadir dalam 15 menit, pemesanan dianggap gugur dan dialihkan ke kelompok lain.
-                                </li>
-                                <li><strong>Waktu Pemesanan:</strong> Paling cepat dilakukan pada H-1.</li>
-                                <li><strong>Kapasitas & Durasi:</strong> Minimal 3 orang, maksimal 10 orang (atau sesuai
-                                    kapasitas ruangan). Durasi peminjaman maksimal 2 jam/hari.</li>
-                                <li><strong>Larangan Khusus:</strong> Dilarang makan, minum, dan tidur di dalam ruang
-                                    diskusi. Kunci wajib dijaga (jika hilang wajib mengganti max H+1).</li>
-                                <li><strong>Pembatalan:</strong> Pembatalan paling lambat H-1 atau melalui menu "Riwayat
-                                    Saya".</li>
-                                <li><strong style="color: var(--danger-color);">Sanksi Pemblokiran:</strong> Melanggar
-                                    aturan akan dikenakan sanksi 1 kelas dilarang meminjam ruangan selama 1 semester.
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-
-            </main>
+            </div>
         </div>
     </div>
 
