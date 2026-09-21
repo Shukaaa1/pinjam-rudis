@@ -151,7 +151,7 @@
                                 <label for="filter-date"
                                     style="font-size:0.85rem; font-weight:600; margin:0;">Tanggal:</label>
                                 <input type="date" id="filter-date" class="form-control"
-                                    style="width: auto; padding: 0.3rem 0.5rem;" onchange="renderMatrixGrid()">
+                                    style="width: auto; padding: 0.3rem 0.5rem;" onchange="handleFilterDateChange()">
                             </div>
                         </div>
                         <div class="card-body">
@@ -169,6 +169,9 @@
                                 <span class="badge"
                                     style="background:#fff3cd; color:#856404; border:1px solid #ffeeba;"><i
                                         class="fa fa-utensils"></i> Arsir Kuning: Istirahat (12.00 - 13.00)</span>
+                                <span class="badge"
+                                    style="background:#e9ecef; color:#495057; border:1px solid #ced4da;"><i
+                                        class="fa fa-ban"></i> Abu-abu: Waktu Terlewat (Tidak Dapat Dipesan)</span>
                             </div>
 
                             <!-- Matrix Grid / Gantt Chart Container -->
@@ -334,7 +337,7 @@
                         <div class="form-group" style="margin-bottom:0;">
                             <label for="input-durasi" style="font-weight:600;"><i class="fa fa-hourglass-half"></i>
                                 Durasi *</label>
-                            <select id="input-durasi" class="form-control" required onchange="handleDurasiChange()">
+                            <select id="input-durasi" class="form-control" required onchange="handleDurasiSelectChange()">
                                 <option value="1" selected>1 Jam</option>
                                 <option value="2">2 Jam</option>
                                 <option value="3">Surat Tugas</option>
@@ -383,7 +386,7 @@
                         <span style="font-size:0.8rem;"><i class="fa fa-exclamation-circle"></i>
                             Pengambilan kunci 5 menit sebelum jadwal di Resepsionis Lt. 1 dengan membawa
                             KTM.</span>
-                        <button type="submit" class="btn btn-primary"
+                        <button type="submit" id="btn-submit-booking" class="btn btn-primary"
                             style="padding: 0.5rem 1.5rem; font-weight:600;"><i class="fa fa-paper-plane"></i> Kirim
                             Pemesanan</button>
                     </div>

@@ -370,6 +370,24 @@ body {
     border-color: #d39e00 !important;
 }
 
+.gantt-cell-past {
+    background-color: #e9ecef !important;
+    color: #495057 !important;
+    cursor: not-allowed !important;
+    vertical-align: middle;
+    text-align: center;
+    border-color: #dee2e6 !important;
+    user-select: none;
+}
+
+.gantt-past-badge {
+    display: inline-block;
+    color: #495057;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+}
+
 .gantt-available-cell {
     background-color: #fcfdfe;
     cursor: pointer;

@@ -16,7 +16,7 @@ const MASTER_ROOMS = [
     { id: 'RD-09', name: 'Ruang Diskusi 9', cap: 8, desc: 'Maks. 8 Orang' }
 ];
 
-const TIME_SLOTS = ['08.00', '09.00', '10.00', '11.00', '13.00', '14.00', '15.00', '16.00'];
+const TIME_SLOTS = ['08.00', '09.00', '10.00', '11.00', '13.00', '14.00', '15.00'];
 
 // User Logged In Mock Data (Dynamically updated from login session)
 let CURRENT_USER = {
@@ -107,6 +107,15 @@ function getSlotEndDateTime(dateStr, slotStr, durasiHours) {
     if (!startDateTime) return null;
     const durasi = parseInt(durasiHours || 1, 10);
     return new Date(startDateTime.getTime() + durasi * 60 * 60 * 1000);
+}
+
+// Helper to check if a specific date and slot have already passed relative to current time
+function isSlotInPast(dateStr, slotStr) {
+    if (!dateStr || !slotStr) return false;
+    const slotDateTime = getSlotDateTime(dateStr, slotStr);
+    if (!slotDateTime) return false;
+    const now = new Date();
+    return now >= slotDateTime;
 }
 
 // Check and auto-expire bookings that exceeded 15-minute tolerance without key pickup
@@ -248,11 +257,14 @@ function updateRealtimeStatus(connected) {
 }
 
 function triggerAllUIRenders() {
+    const filterDate = document.getElementById('filter-date')?.value || getTodayDateString();
+    if (typeof updateSlotDropdownOptions === 'function') updateSlotDropdownOptions(filterDate);
     if (typeof renderMatrixGrid === 'function') renderMatrixGrid();
     if (typeof renderMyBookings === 'function') renderMyBookings();
     if (typeof updateActiveSessionBanner === 'function') updateActiveSessionBanner();
     if (typeof renderAdminTable === 'function') renderAdminTable();
     if (typeof renderAdminRoomGrid === 'function') renderAdminRoomGrid();
+    if (typeof validateTimeSlotConstraints === 'function') validateTimeSlotConstraints();
 }
 
 // Fetch fresh bookings from server
@@ -291,6 +303,43 @@ function saveBookings(bookings) {
     }
 }
 
+// Update Slot Dropdown Options based on selected date (disable past slots)
+function updateSlotDropdownOptions(selectedDate) {
+    const slotSelect = document.getElementById('input-slot');
+    if (!slotSelect) return;
+
+    const dateStr = selectedDate || document.getElementById('filter-date')?.value || getTodayDateString();
+    let firstAvailableValue = null;
+
+    Array.from(slotSelect.options).forEach(opt => {
+        const slotVal = opt.value;
+        const past = isSlotInPast(dateStr, slotVal);
+        if (past) {
+            opt.disabled = true;
+            opt.textContent = `${slotVal} (Waktu Lewat)`;
+        } else {
+            opt.disabled = false;
+            opt.textContent = slotVal;
+            if (!firstAvailableValue) {
+                firstAvailableValue = slotVal;
+            }
+        }
+    });
+
+    // If current selected option is disabled, switch to first available option
+    if (slotSelect.selectedOptions[0]?.disabled && firstAvailableValue) {
+        slotSelect.value = firstAvailableValue;
+    }
+}
+
+// Handler when filter date changes
+function handleFilterDateChange() {
+    const filterDate = document.getElementById('filter-date')?.value || getTodayDateString();
+    updateSlotDropdownOptions(filterDate);
+    renderMatrixGrid();
+    validateTimeSlotConstraints();
+}
+
 // App Initialization
 document.addEventListener('DOMContentLoaded', () => {
     initCurrentUser();
@@ -301,13 +350,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Run initial auto-expire check
     checkAutoExpireBookings(false);
 
-    // Set default date picker to today
+    // Set default date picker to today and min to today
     const dateInput = document.getElementById('filter-date');
+    const todayStr = getTodayDateString();
     if (dateInput) {
-        dateInput.value = getTodayDateString();
+        dateInput.value = todayStr;
+        dateInput.min = todayStr;
     }
 
     populateRoomDropdown();
+    updateSlotDropdownOptions(todayStr);
     renderMatrixGrid();
     renderMyBookings();
     validateTimeSlotConstraints();
@@ -318,9 +370,12 @@ document.addEventListener('DOMContentLoaded', () => {
         updateActiveSessionBanner();
     }, 1000);
 
-    // Periodic auto-expiry check every 10 seconds
+    // Periodic auto-expiry check & slot refresh every 10 seconds
     setInterval(() => {
         checkAutoExpireBookings(true);
+        const currentDate = document.getElementById('filter-date')?.value || getTodayDateString();
+        updateSlotDropdownOptions(currentDate);
+        renderMatrixGrid();
     }, 10000);
 
     // Auto sync when storage changes (Cross-Tab Live Sync)
@@ -386,6 +441,11 @@ function renderMatrixGrid() {
                                 &nbsp;
                              </td>`;
                 }
+            } else if (isSlotInPast(filterDate, slot)) {
+                html += `<td class="gantt-cell-past" 
+                             title="Waktu peminjaman telah terlewat (Jam ${slot}). Tidak dapat dipesan.">
+                             <span class="gantt-past-badge"><i class="fa fa-ban"></i> Lewat</span>
+                         </td>`;
             } else {
                 const isSelected = (room.id === selectedRoomId && slot === selectedSlot);
                 const activeClass = isSelected ? 'gantt-available-cell-selected' : '';
@@ -413,12 +473,19 @@ function renderMatrixGrid() {
 
 // Select slot directly by clicking a clean cell in Gantt table
 function selectSlotFromGrid(roomId, slot) {
+    const filterDate = document.getElementById('filter-date')?.value || getTodayDateString();
+    if (isSlotInPast(filterDate, slot)) {
+        alert(`Slot waktu ${slot} pada tanggal ${filterDate} sudah terlewat dan tidak dapat dipesan.`);
+        return;
+    }
+
     const roomSelect = document.getElementById('input-room');
     const slotSelect = document.getElementById('input-slot');
 
     if (roomSelect) roomSelect.value = roomId;
     if (slotSelect) slotSelect.value = slot;
 
+    updateSlotDropdownOptions(filterDate);
     handleRoomSelectChange();
     handleTimeSlotSelectChange();
     renderMatrixGrid();
@@ -436,6 +503,7 @@ function handleRoomSelectChange() {
     if (room) {
         document.getElementById('room-cap-hint').innerText = `Maksimal kapasitas ${room.name}: ${room.cap} orang (Min 3 orang).`;
     }
+    validateTimeSlotConstraints();
     renderMatrixGrid();
 }
 
@@ -444,36 +512,98 @@ function handleTimeSlotSelectChange() {
     renderMatrixGrid();
 }
 
-// Dynamic Time Constraints Validation (11.00 & 15.00 limit to 1 hour max)
+// Dynamic Time Constraints Validation & Live Conflict Feedback
 function validateTimeSlotConstraints() {
     const slot = document.getElementById('input-slot')?.value;
     const durasiSelect = document.getElementById('input-durasi');
+    const submitBtn = document.getElementById('btn-submit-booking');
+    const notice = document.getElementById('time-constraint-notice');
+    const filterDate = document.getElementById('filter-date')?.value || getTodayDateString();
+    const roomId = document.getElementById('input-room')?.value;
+    const durasi = parseInt(durasiSelect?.value || '1', 10);
+    const room = MASTER_ROOMS.find(r => r.id === roomId);
+
     if (!durasiSelect) return;
 
     const opt2 = durasiSelect.querySelector('option[value="2"]');
     const opt3 = durasiSelect.querySelector('option[value="3"]');
-    const notice = document.getElementById('time-constraint-notice');
 
+    // Rule: 11.00 & 15.00 limit to 1 hour max
     if (slot === '11.00' || slot === '15.00') {
         durasiSelect.value = "1";
         if (opt2) opt2.disabled = true;
         if (opt3) opt3.disabled = true;
-
-        const hintText = slot === '11.00'
-            ? '⏰ Catatan: Pada slot jam 11.00, durasi maksimal hanya 1 jam karena pukul 12.00 - 13.00 adalah jam istirahat.'
-            : '⏰ Catatan: Pada slot jam 15.00, durasi maksimal hanya 1 jam karena ruang diskusi tutup pada pukul 16.00.';
-
-        if (notice) {
-            notice.innerText = hintText;
-            notice.classList.remove('hidden');
-        }
     } else {
         if (opt2) opt2.disabled = false;
         if (opt3) opt3.disabled = false;
-        if (notice) notice.classList.add('hidden');
     }
 
     handleDurasiChange();
+
+    let errorMessage = '';
+    let warningMessage = '';
+
+    // Constraint 2: Past Time Slot Check
+    if (isSlotInPast(filterDate, slot)) {
+        errorMessage = `Waktu peminjaman jam ${slot} pada tanggal ${filterDate} sudah terlewat. Silakan pilih waktu yang akan datang.`;
+    }
+
+    // Constraint 1: Mahasiswa tidak bisa meminjam lebih dari 1 ruangan di waktu yang sama
+    if (!errorMessage) {
+        const bookings = getBookings();
+        const studentConflict = bookings.find(b =>
+            b.nim === CURRENT_USER.nim &&
+            b.date === filterDate &&
+            ['Menunggu Kunci', 'Sedang Digunakan'].includes(b.status) &&
+            TIME_SLOTS.some(s => isSlotOccupied(b.slot, b.durasi, s) && isSlotOccupied(slot, durasi, s))
+        );
+
+        if (studentConflict) {
+            errorMessage = `Anda sudah memiliki peminjaman aktif di ${studentConflict.roomName} pada jam ${studentConflict.slot} (${studentConflict.durasi} Jam). Setiap mahasiswa tidak dapat meminjam lebih dari 1 ruangan di waktu bersamaan.`;
+        }
+    }
+
+    // Room Conflict Check (Another student booked this room at the same time)
+    if (!errorMessage && roomId) {
+        const bookings = getBookings();
+        const roomConflict = bookings.find(b =>
+            b.roomId === roomId &&
+            b.date === filterDate &&
+            ['Menunggu Kunci', 'Sedang Digunakan'].includes(b.status) &&
+            TIME_SLOTS.some(s => isSlotOccupied(b.slot, b.durasi, s) && isSlotOccupied(slot, durasi, s))
+        );
+        if (roomConflict) {
+            errorMessage = `${room ? room.name : 'Ruangan ini'} sudah dipesan pada slot waktu tersebut (${roomConflict.slot}, ${roomConflict.durasi} Jam). Silakan pilih ruangan atau slot lain.`;
+        }
+    }
+
+    // Informational note for 11.00 / 15.00
+    if (!errorMessage && (slot === '11.00' || slot === '15.00')) {
+        warningMessage = slot === '11.00'
+            ? 'Catatan: Pada slot jam 11.00, durasi maksimal hanya 1 jam karena pukul 12.00 - 13.00 adalah jam istirahat.'
+            : 'Catatan: Pada slot jam 15.00, durasi maksimal hanya 1 jam karena ruang diskusi tutup pada pukul 16.00.';
+    }
+
+    if (notice) {
+        if (errorMessage) {
+            notice.innerHTML = `<i class="fa fa-exclamation-triangle" style="margin-right:6px;"></i> ${errorMessage}`;
+            notice.style.background = '#f8d7da';
+            notice.style.color = '#721c24';
+            notice.style.borderColor = '#f5c6cb';
+            notice.classList.remove('hidden');
+            if (submitBtn) submitBtn.disabled = true;
+        } else if (warningMessage) {
+            notice.innerHTML = `<i class="fa fa-clock" style="margin-right:6px;"></i> ${warningMessage}`;
+            notice.style.background = '#fff3cd';
+            notice.style.color = '#856404';
+            notice.style.borderColor = '#ffeeba';
+            notice.classList.remove('hidden');
+            if (submitBtn) submitBtn.disabled = false;
+        } else {
+            notice.classList.add('hidden');
+            if (submitBtn) submitBtn.disabled = false;
+        }
+    }
 }
 
 // Helper check if slot is within duration
@@ -489,13 +619,20 @@ function closeModal(modalId) {
 }
 
 function handleDurasiChange() {
-    const durasi = document.getElementById('input-durasi').value;
+    const durasi = document.getElementById('input-durasi')?.value;
     const docGroup = document.getElementById('doc-upload-group');
-    if (durasi === '3') {
-        docGroup.classList.remove('hidden');
-    } else {
-        docGroup.classList.add('hidden');
+    if (docGroup) {
+        if (durasi === '3') {
+            docGroup.classList.remove('hidden');
+        } else {
+            docGroup.classList.add('hidden');
+        }
     }
+}
+
+function handleDurasiSelectChange() {
+    handleDurasiChange();
+    validateTimeSlotConstraints();
 }
 
 /// Submit New Booking Form
@@ -517,6 +654,12 @@ function handleFormSubmit(e) {
         return;
     }
 
+    // Constraint 2: Past Time Slot Check
+    if (isSlotInPast(filterDate, slot)) {
+        alert(`Pemesanan Ditolak: Jam ${slot} pada tanggal ${filterDate} sudah terlewat. Silakan pilih waktu yang akan datang.`);
+        return;
+    }
+
     if (jumlah < 3) {
         alert('Sesuai aturan, peminjaman minimal 3 orang per kelompok.');
         return;
@@ -528,7 +671,20 @@ function handleFormSubmit(e) {
 
     const bookings = getBookings();
 
-    // Check overlap for target slot & duration
+    // Constraint 1: Mahasiswa tidak bisa meminjam lebih dari 1 ruangan di waktu yang sama
+    const studentConflict = bookings.find(b =>
+        b.nim === CURRENT_USER.nim &&
+        b.date === filterDate &&
+        ['Menunggu Kunci', 'Sedang Digunakan'].includes(b.status) &&
+        TIME_SLOTS.some(s => isSlotOccupied(b.slot, b.durasi, s) && isSlotOccupied(slot, durasi, s))
+    );
+
+    if (studentConflict) {
+        alert(`Pemesanan Ditolak:\nAnda sudah memiliki peminjaman aktif untuk ${studentConflict.roomName} pada jam ${studentConflict.slot} (Durasi ${studentConflict.durasi} Jam).\n\nSesuai aturan, setiap mahasiswa tidak diperbolehkan meminjam lebih dari 1 ruangan pada waktu yang bersamaan.`);
+        return;
+    }
+
+    // Check overlap for target slot & duration on the same room
     const isOverlap = bookings.some(b =>
         b.roomId === roomId &&
         b.date === filterDate &&
