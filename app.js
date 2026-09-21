@@ -18,15 +18,26 @@ const MASTER_ROOMS = [
 
 const TIME_SLOTS = ['08.00', '09.00', '10.00', '11.00', '13.00', '14.00', '15.00', '16.00'];
 
-// User Logged In Mock Data
-const CURRENT_USER = {
-    nama: 'RADEN MAS GALIH CHONDRO KIRONO MANGUN KUSUMO',
-    nim: '4131230001',
-    email: 'radenmas_4131230001@pknstan.ac.id',
-    prodi: 'Sarjana Terapan Manajemen Keuangan Dinasti',
+// User Logged In Mock Data (Dynamically updated from login session)
+let CURRENT_USER = {
+    nama: 'VERI GALIH SETIYO AJI',
+    nim: '4131230098',
+    email: 'galih_4131230098@pknstan.ac.id',
+    prodi: 'Sarjana Terapan Akuntansi Sektor Publik',
     kelas: '6 Sisfo 5',
     hp: '081234567890'
 };
+
+function initCurrentUser() {
+    try {
+        const raw = sessionStorage.getItem('current_civitas_user') || localStorage.getItem('current_civitas_user');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            Object.assign(CURRENT_USER, parsed);
+        }
+    } catch (e) {}
+}
+initCurrentUser();
 
 // Initial Seed Data for Booking Transactions
 const SEED_BOOKINGS = [
@@ -200,14 +211,93 @@ function getBookings() {
     return bookings;
 }
 
-// Save Bookings to localStorage and Dispatch Event
+// Socket.IO Realtime Client Setup
+let socket = null;
+if (typeof io !== 'undefined') {
+    socket = io();
+    socket.on('connect', () => {
+        updateRealtimeStatus(true);
+        console.log('[Realtime] Terhubung ke server Socket.IO:', socket.id);
+    });
+
+    socket.on('disconnect', () => {
+        updateRealtimeStatus(false);
+        console.warn('[Realtime] Terputus dari server Socket.IO');
+    });
+
+    socket.on('bookings:sync', (serverBookings) => {
+        if (Array.isArray(serverBookings)) {
+            localStorage.setItem('pinjam_rudis_bookings', JSON.stringify(serverBookings));
+            triggerAllUIRenders();
+        }
+    });
+}
+
+function updateRealtimeStatus(connected) {
+    const badge = document.getElementById('realtime-status-badge');
+    const text = document.getElementById('realtime-status-text');
+    if (!badge || !text) return;
+
+    if (connected) {
+        badge.classList.remove('offline', 'disconnected');
+        text.textContent = 'Realtime Terhubung';
+    } else {
+        badge.classList.add('offline', 'disconnected');
+        text.textContent = 'Mode Offline (Lokal)';
+    }
+}
+
+function triggerAllUIRenders() {
+    if (typeof renderMatrixGrid === 'function') renderMatrixGrid();
+    if (typeof renderMyBookings === 'function') renderMyBookings();
+    if (typeof updateActiveSessionBanner === 'function') updateActiveSessionBanner();
+    if (typeof renderAdminTable === 'function') renderAdminTable();
+    if (typeof renderAdminRoomGrid === 'function') renderAdminRoomGrid();
+}
+
+// Fetch fresh bookings from server
+async function fetchBookingsFromServer() {
+    try {
+        const res = await fetch('/api/bookings');
+        if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data)) {
+                localStorage.setItem('pinjam_rudis_bookings', JSON.stringify(data));
+                triggerAllUIRenders();
+            }
+        }
+    } catch (err) {
+        console.log('[Offline Fallback] Server belum aktif, menggunakan data browser lokal.');
+    }
+}
+
+// Save Bookings to localStorage, Server API, and Dispatch Realtime Event
 function saveBookings(bookings) {
     localStorage.setItem('pinjam_rudis_bookings', JSON.stringify(bookings));
     window.dispatchEvent(new Event('storage'));
+
+    // Emit via Socket.IO if connected
+    if (socket && socket.connected) {
+        socket.emit('updateBookings', bookings);
+    } else {
+        // Fallback HTTP POST
+        fetch('/api/bookings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(bookings)
+        }).catch(err => {
+            console.warn('[Storage] Gagal push ke server HTTP:', err);
+        });
+    }
 }
 
 // App Initialization
 document.addEventListener('DOMContentLoaded', () => {
+    initCurrentUser();
+
+    // Fetch latest bookings from server immediately
+    fetchBookingsFromServer();
+
     // Run initial auto-expire check
     checkAutoExpireBookings(false);
 
@@ -235,13 +325,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Auto sync when storage changes (Cross-Tab Live Sync)
     window.addEventListener('storage', () => {
-        renderMatrixGrid();
-        renderMyBookings();
-        updateActiveSessionBanner();
-        if (typeof renderAdminTable === 'function') renderAdminTable();
-        if (typeof renderAdminRoomGrid === 'function') renderAdminRoomGrid();
+        triggerAllUIRenders();
     });
 });
+
 
 // Populate Room Select Dropdown
 function populateRoomDropdown() {

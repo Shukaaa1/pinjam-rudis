@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Peminjaman Ruang Diskusi - Portal Civitas PKN STAN</title>
+    <link rel="icon" href="https://portal.pknstan.ac.id/assets/plugins/images/stan_ico.ico">
     <link rel="stylesheet" href="portal-style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -16,35 +17,69 @@
             <div class="app-header__logo">
                 <img src="https://portal.pknstan.ac.id/assets/plugins/images/stan_ico.ico" alt="PKN STAN Logo"
                     width="36" height="36">
-                <strong>Civitas PKN STAN</strong>
+                <strong>Civitas</strong>
+                <button type="button" class="btn btn-sm btn-light" style="margin-left: 10px; border:none; background:transparent;" title="Toggle Sidebar">
+                    <i class="fa fa-bars" style="color: #64748b;"></i>
+                </button>
             </div>
-            <div class="app-header-user">
-                <img src="https://portal.pknstan.ac.id/upload/avatar/user.jpg" alt="User Avatar">
-                <div class="user-info-text">
-                    <div class="name" id="user-display-name">VERI GALIH SETIYO AJI</div>
-                    <div class="email" id="user-display-email">galih_4131230098@pknstan.ac.id</div>
+
+            <div style="display:flex; align-items:center; gap: 16px;">
+                <!-- Realtime Badge -->
+                <div id="realtime-status-badge" class="realtime-pill">
+                    <span class="dot"></span>
+                    <span id="realtime-status-text">Realtime Terhubung</span>
+                </div>
+
+                <!-- User Profile -->
+                <div class="app-header-user">
+                    <img src="https://portal.pknstan.ac.id/upload/avatar/user.jpg" alt="Foto Profil Mahasiswa"
+                        onerror="this.src='https://ui-avatars.com/api/?name=Civitas+STAN&background=38bdf8&color=fff'">
+                    <div class="user-info-text">
+                        <div class="name" id="user-display-name">VERI GALIH SETIYO AJI</div>
+                        <div class="email" id="user-display-email">galih_4131230098@pknstan.ac.id</div>
+                    </div>
+                    <button class="btn btn-outline-danger btn-sm" onclick="handleStudentLogout()" title="Keluar dari Portal" style="margin-left:8px; padding:4px 8px; font-size:0.75rem; border-color:#cbd5e1; color:#64748b; background:transparent; border-radius:4px; cursor:pointer;">
+                        <i class="fa fa-sign-out-alt"></i> Logout
+                    </button>
                 </div>
             </div>
         </header>
 
         <div class="app-main">
-            <!-- Left Sidebar -->
+            <!-- Left Sidebar Replicating Image 2 -->
             <aside class="app-sidebar">
-                <div class="sidebar-heading">General</div>
+                <div class="sidebar-heading">GENERAL</div>
                 <ul class="nav-menu">
-                    <li><a href="#"><i class="fa fa-chart-line"></i> Beranda</a></li>
-                    <li><a href="#"><i class="fa fa-id-card"></i> Profil Mahasiswa</a></li>
-                    <li><a href="#"><i class="fa fa-file-alt"></i> Peraturan</a></li>
+                    <li><a href="javascript:void(0)" onclick="alert('Navigasi prototipe: Anda saat ini berada di modul Peminjaman Ruang Diskusi.')"><i class="fa fa-chart-line"></i> Beranda</a></li>
+                    <li><a href="javascript:void(0)" onclick="alert('Navigasi prototipe: Anda saat ini berada di modul Peminjaman Ruang Diskusi.')"><i class="fa fa-id-card"></i> Profil Mahasiswa</a></li>
+                    <li><a href="javascript:void(0)" onclick="alert('Navigasi prototipe: Anda saat ini berada di modul Peminjaman Ruang Diskusi.')"><i class="fa fa-file-alt"></i> Peraturan & Buku Perkuliahan</a></li>
                 </ul>
 
-                <div class="sidebar-heading">Perkuliahan & Layanan</div>
+                <div class="sidebar-heading">PERKULIAHAN</div>
                 <ul class="nav-menu">
-                    <li><a href="#"><i class="fa fa-graduation-cap"></i> Nilai</a></li>
-                    <li><a href="#"><i class="fa fa-book"></i> Jadwal Kuliah</a></li>
-                    <li><a href="#" class="active"><i class="fa fa-door-open"></i> Peminjaman Ruang Diskusi</a></li>
-                    <li><a href="admin.html" target="_blank" style="color: #d92550;"><i class="fa fa-user-shield"></i>
-                            Portal Admin / Resepsionis <i class="fa fa-external-link-alt"
-                                style="font-size:0.7rem; margin-left: auto;"></i></a></li>
+                    <li><a href="javascript:void(0)" onclick="alert('Navigasi prototipe: Anda saat ini berada di modul Peminjaman Ruang Diskusi.')"><i class="fa fa-graduation-cap"></i> Nilai</a></li>
+                    <li><a href="javascript:void(0)" onclick="alert('Navigasi prototipe: Anda saat ini berada di modul Peminjaman Ruang Diskusi.')"><i class="fa fa-book"></i> Kuliah <i class="fa fa-chevron-down" style="font-size:0.7rem; margin-left:auto;"></i></a></li>
+                    <li><a href="javascript:void(0)" onclick="alert('Navigasi prototipe: Anda saat ini berada di modul Peminjaman Ruang Diskusi.')"><i class="fa fa-comments"></i> Bimbingan Akademik <i class="fa fa-chevron-down" style="font-size:0.7rem; margin-left:auto;"></i></a></li>
+                    <li><a href="javascript:void(0)" onclick="alert('Navigasi prototipe: Anda saat ini berada di modul Peminjaman Ruang Diskusi.')"><i class="fa fa-award"></i> SKPM <i class="fa fa-chevron-down" style="font-size:0.7rem; margin-left:auto;"></i></a></li>
+                    <li><a href="javascript:void(0)" onclick="alert('Navigasi prototipe: Anda saat ini berada di modul Peminjaman Ruang Diskusi.')"><i class="fa fa-award"></i> SKPM V2 <i class="fa fa-chevron-down" style="font-size:0.7rem; margin-left:auto;"></i></a></li>
+                    <li><a href="javascript:void(0)" onclick="alert('Navigasi prototipe: Anda saat ini berada di modul Peminjaman Ruang Diskusi.')"><i class="fa fa-check-double"></i> Evaluasi</a></li>
+                    
+                    <!-- Submenu Layanan (Expanded) -->
+                    <li>
+                        <a href="javascript:void(0)" class="active" style="background:rgba(255,255,255,0.2);">
+                            <i class="fa fa-concierge-bell"></i> Layanan <i class="fa fa-chevron-up" style="font-size:0.7rem; margin-left:auto;"></i>
+                        </a>
+                        <ul class="nav-submenu">
+                            <li><a href="javascript:void(0)" class="active"><i class="fa fa-door-open"></i> Peminjaman Ruang Diskusi</a></li>
+                            <li><a href="javascript:void(0)" onclick="alert('Layanan Informasi Nilai Data SPMB')"><i class="fa fa-info-circle"></i> Informasi Nilai Data SPMB</a></li>
+                        </ul>
+                    </li>
+
+                    <li style="margin-top:20px;">
+                        <a href="/adminrudis/login.html" target="_blank" style="background:rgba(255,255,255,0.1); border:1px dashed rgba(255,255,255,0.4); font-size:0.8rem;">
+                            <i class="fa fa-user-shield"></i> Portal Admin Resepsionis <i class="fa fa-external-link-alt" style="font-size:0.65rem; margin-left:auto;"></i>
+                        </a>
+                    </li>
                 </ul>
             </aside>
 
@@ -53,8 +88,7 @@
                 <div class="app-page-title">
                     <div class="page-title-heading">
                         <h1>Ruang Diskusi</h1>
-                        <div class="page-title-subheading">Sistem Peminjaman & Monitoring Ruang Diskusi Perpustakaan
-                            (Gedung P)</div>
+                        <div class="page-title-subheading">Sistem Peminjaman & Monitoring Ruang Diskusi Perpustakaan (Gedung P)</div>
                     </div>
                 </div>
 
@@ -411,8 +445,43 @@
         </div>
     </div>
 
-    <!-- Script Application Logic -->
+    <!-- Scripts -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="dummy-students.js"></script>
     <script src="app.js"></script>
+    <script>
+        // Authentication guard for Civitas Portal
+        document.addEventListener('DOMContentLoaded', () => {
+            const rawUser = sessionStorage.getItem('current_civitas_user') || localStorage.getItem('current_civitas_user');
+            if (!rawUser) {
+                // If not logged in, redirect to login page
+                window.location.href = '/login.html';
+                return;
+            }
+
+            try {
+                const user = JSON.parse(rawUser);
+                // Update header user information
+                const nameEl = document.getElementById('user-display-name');
+                const emailEl = document.getElementById('user-display-email');
+                if (nameEl && user.nama) nameEl.textContent = user.nama;
+                if (emailEl && user.email) emailEl.textContent = user.email;
+
+                // Sync CURRENT_USER in app.js
+                if (typeof CURRENT_USER !== 'undefined') {
+                    Object.assign(CURRENT_USER, user);
+                }
+            } catch (e) {
+                console.error('Failed to parse user session:', e);
+            }
+        });
+
+        function handleStudentLogout() {
+            sessionStorage.removeItem('current_civitas_user');
+            localStorage.removeItem('current_civitas_user');
+            window.location.href = '/login.html';
+        }
+    </script>
 </body>
 
 </html>

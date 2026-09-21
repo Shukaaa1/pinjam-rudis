@@ -82,23 +82,26 @@ body {
     flex: 1;
 }
 
-/* Sidebar Styling */
+/* Sidebar Styling Replicating Image 2 (bg-happy-fisher) */
 .app-sidebar {
-    width: 280px;
-    background: #ffffff;
-    border-right: 1px solid #e9ecef;
-    padding: 1.5rem 1rem;
-    box-shadow: 0 0.46875rem 2.1875rem rgba(4, 9, 20, 0.03);
+    width: 270px;
+    background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+    color: #ffffff;
+    border-right: none;
+    padding: 1.2rem 0.8rem;
+    box-shadow: 0 4px 16px rgba(2, 132, 199, 0.15);
+    flex-shrink: 0;
 }
 
 .sidebar-heading {
     text-transform: uppercase;
-    font-size: 0.75rem;
-    font-weight: bold;
-    color: #888;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.75);
     margin-top: 1rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.4rem;
     padding-left: 0.75rem;
+    letter-spacing: 0.5px;
 }
 
 .nav-menu {
@@ -107,26 +110,87 @@ body {
     margin: 0;
 }
 
+.nav-menu li {
+    margin-bottom: 2px;
+}
+
 .nav-menu li a {
     display: flex;
     align-items: center;
-    padding: 0.65rem 0.85rem;
-    color: #495057;
+    padding: 0.6rem 0.8rem;
+    color: rgba(255, 255, 255, 0.9);
     text-decoration: none;
-    font-size: 0.9rem;
-    border-radius: 0.25rem;
+    font-size: 0.88rem;
+    font-weight: 500;
+    border-radius: 6px;
     transition: all 0.2s;
 }
 
-.nav-menu li a:hover, .nav-menu li a.active {
-    background-color: #e0f2fe;
-    color: #0284c7;
-    font-weight: 600;
+.nav-menu li a:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+}
+
+.nav-menu li a.active {
+    background-color: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+    font-weight: 700;
 }
 
 .nav-menu li a i {
-    margin-right: 10px;
-    font-size: 1.1rem;
+    margin-right: 12px;
+    font-size: 1rem;
+    width: 18px;
+    text-align: center;
+    opacity: 0.9;
+}
+
+.nav-submenu {
+    list-style: none;
+    padding-left: 1.5rem;
+    margin: 4px 0 8px 0;
+}
+
+.nav-submenu li a {
+    padding: 0.45rem 0.75rem;
+    font-size: 0.84rem;
+    color: rgba(255, 255, 255, 0.85);
+    position: relative;
+}
+
+.nav-submenu li a.active {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    font-weight: 700;
+    border-left: 3px solid #ffffff;
+    border-radius: 0 6px 6px 0;
+}
+
+/* Realtime Connection Status Pill */
+.realtime-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+
+.realtime-pill.offline {
+    background: #fef2f2;
+    color: #991b1b;
+    border-color: #fecaca;
+}
+
+.realtime-pill .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: currentColor;
 }
 
 /* Main Content Area */

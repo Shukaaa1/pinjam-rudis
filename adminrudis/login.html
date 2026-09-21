@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perpusku. - Login Petugas Perpustakaan</title>
+    <link rel="icon" href="https://portal.pknstan.ac.id/assets/plugins/images/stan_ico.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background-color: #f6f6f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+            color: #1f2937;
+        }
+
+        .perpusku-card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 440px;
+            border-radius: 24px;
+            padding: 44px 36px;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.06);
+            text-align: center;
+            border: 1px solid #f0f0f0;
+        }
+
+        /* Top Icon */
+        .perpusku-logo-badge {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #cbd5e1;
+            width: 58px;
+            height: 58px;
+            border-radius: 14px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .perpusku-logo-badge i {
+            font-size: 1.6rem;
+            color: #1e293b;
+        }
+
+        .perpusku-logo-badge span {
+            font-size: 0.55rem;
+            font-weight: 800;
+            background: #0f172a;
+            color: #ffffff;
+            padding: 1px 4px;
+            border-radius: 3px;
+            margin-top: 2px;
+            letter-spacing: 0.5px;
+        }
+
+        .perpusku-title {
+            font-size: 2rem;
+            font-weight: 900;
+            color: #111827;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+
+        .perpusku-subtitle {
+            font-size: 0.95rem;
+            color: #6b7280;
+            margin-bottom: 28px;
+            line-height: 1.4;
+        }
+
+        /* Beige Button (Demo / Fast access) */
+        .btn-fast-access {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 14px 18px;
+            background-color: #f4eadc;
+            color: #452c1e;
+            border: 1px solid #e7d8c4;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 24px;
+        }
+
+        .btn-fast-access:hover {
+            background-color: #ecdece;
+        }
+
+        .btn-fast-access i {
+            font-size: 1.1rem;
+        }
+
+        /* Divider */
+        .perpusku-divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: #9ca3af;
+            font-size: 0.85rem;
+            margin: 20px 0;
+        }
+
+        .perpusku-divider::before,
+        .perpusku-divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .perpusku-divider span {
+            padding: 0 14px;
+        }
+
+        /* Form Area */
+        .form-section {
+            text-align: left;
+        }
+
+        .form-label-guest {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 10px;
+        }
+
+        .input-group-custom {
+            position: relative;
+            margin-bottom: 14px;
+        }
+
+        .input-group-custom i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+            font-size: 1rem;
+        }
+
+        .input-perpusku {
+            width: 100%;
+            padding: 14px 14px 14px 42px;
+            font-size: 0.92rem;
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            color: #111827;
+            transition: all 0.2s;
+        }
+
+        .input-perpusku:focus {
+            outline: 2px solid #374151;
+            background-color: #ffffff;
+            border-color: #374151;
+        }
+
+        /* Dark Charcoal Button */
+        .btn-perpusku-submit {
+            width: 100%;
+            padding: 15px;
+            background-color: #4b5563;
+            color: #ffffff;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 10px;
+        }
+
+        .btn-perpusku-submit:hover {
+            background-color: #374151;
+        }
+
+        .btn-perpusku-submit:active {
+            transform: scale(0.99);
+        }
+
+        /* Footer Note */
+        .perpusku-footer-note {
+            font-size: 0.78rem;
+            color: #9ca3af;
+            margin-top: 24px;
+            line-height: 1.5;
+            padding: 0 8px;
+        }
+
+        .error-alert {
+            background-color: #fee2e2;
+            color: #991b1b;
+            font-size: 0.82rem;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 14px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="perpusku-card">
+        <!-- Logo -->
+        <div class="perpusku-logo-badge">
+            <i class="fa fa-book-bookmark"></i>
+            <span>Perpusku</span>
+        </div>
+
+        <h1 class="perpusku-title">Perpusku.</h1>
+        <p class="perpusku-subtitle">Portal Manajemen Ruang Diskusi Civitas PKN STAN</p>
+
+        <!-- Fast Access Demo Button -->
+        <button type="button" class="btn-fast-access" onclick="handleFastAdminLogin()">
+            <i class="fa fa-key"></i> Masuk Otomatis (Akun Petugas Demo)
+        </button>
+
+        <div class="perpusku-divider">
+            <span>Atau</span>
+        </div>
+
+        <!-- Form Login -->
+        <form id="admin-login-form" onsubmit="handleAdminLoginSubmit(event)" class="form-section">
+            <div id="login-error" class="error-alert">
+                Username atau password salah. Silakan coba <strong>admin</strong> / <strong>admin123</strong>.
+            </div>
+
+            <label class="form-label-guest" for="admin-user">Masuk sebagai Petugas</label>
+            
+            <div class="input-group-custom">
+                <i class="fa fa-user"></i>
+                <input type="text" id="admin-user" class="input-perpusku" placeholder="Username Petugas (admin)" value="admin" required autocomplete="username">
+            </div>
+
+            <div class="input-group-custom">
+                <i class="fa fa-lock"></i>
+                <input type="password" id="admin-pass" class="input-perpusku" placeholder="Password (admin123)" value="admin123" required autocomplete="current-password">
+            </div>
+
+            <button type="submit" class="btn-perpusku-submit">
+                Masuk ke Panel Resepsionis
+            </button>
+        </form>
+
+        <p class="perpusku-footer-note">
+            Portal Khusus Petugas Resepsionis Gedung P Lantai 1. Mengelola verifikasi identitas (KTM), serah terima kunci, dan monitoring peminjaman.
+        </p>
+    </main>
+
+    <script>
+        function handleAdminLoginSubmit(e) {
+            e.preventDefault();
+            const user = document.getElementById('admin-user').value.trim();
+            const pass = document.getElementById('admin-pass').value.trim();
+            const errEl = document.getElementById('login-error');
+
+            // Prototype credentials: admin / admin123 (or any non-empty input for ease of review)
+            if (user === 'admin' && pass === 'admin123') {
+                sessionStorage.setItem('admin_auth', JSON.stringify({
+                    username: user,
+                    name: 'Petugas Resepsionis Lt. 1',
+                    loginAt: new Date().toISOString()
+                }));
+                window.location.href = '/adminrudis/index.html';
+            } else if (user && pass) {
+                // Also accept custom prototype logins
+                sessionStorage.setItem('admin_auth', JSON.stringify({
+                    username: user,
+                    name: `Petugas (${user})`,
+                    loginAt: new Date().toISOString()
+                }));
+                window.location.href = '/adminrudis/index.html';
+            } else {
+                errEl.style.display = 'block';
+            }
+        }
+
+        function handleFastAdminLogin() {
+            sessionStorage.setItem('admin_auth', JSON.stringify({
+                username: 'admin',
+                name: 'Petugas Resepsionis Gedung P',
+                loginAt: new Date().toISOString()
+            }));
+            window.location.href = '/adminrudis/index.html';
+        }
+    </script>
+</body>
+
+</html>

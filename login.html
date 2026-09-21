@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Portal Civitas PKN STAN</title>
+    <link rel="icon" href="https://portal.pknstan.ac.id/assets/plugins/images/stan_ico.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, rgba(235, 243, 250, 0.85), rgba(220, 235, 248, 0.9)),
+                        url('https://portal.pknstan.ac.id/assets/images/background.jpg') center/cover no-repeat;
+            background-color: #dcebf8;
+            display: flex;
+            flex-direction: column;
+            color: #1e293b;
+        }
+
+        /* Top Header */
+        .login-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 48px;
+            width: 100%;
+        }
+
+        .login-header__logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .login-header__logo img {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+        }
+
+        .login-header__nav {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .login-header__nav a {
+            text-decoration: none;
+            color: #f59e0b;
+            font-weight: 700;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        .login-header__nav a:hover {
+            color: #d97706;
+        }
+
+        .btn-header-login {
+            background-color: #f59e0b;
+            color: #ffffff !important;
+            padding: 8px 24px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 6px rgba(245, 158, 11, 0.35);
+        }
+
+        /* Main Section */
+        .login-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 24px 48px 48px 48px;
+            gap: 40px;
+        }
+
+        .hero-text {
+            flex: 1;
+            max-width: 540px;
+        }
+
+        .hero-text h2 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #0f2b48;
+            margin-bottom: 8px;
+            line-height: 1.2;
+        }
+
+        .hero-text h1 {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: #f59e0b;
+            line-height: 1.2;
+            margin-bottom: 24px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .hero-campus-banner {
+            margin-top: 30px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(15, 43, 72, 0.12);
+            border: 3px solid #ffffff;
+            background: #ffffff;
+        }
+
+        .hero-campus-banner img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* Login Card */
+        .login-card {
+            width: 100%;
+            max-width: 420px;
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(15, 43, 72, 0.15);
+            padding: 36px 32px;
+            text-align: center;
+        }
+
+        .login-card__title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #0f2b48;
+            letter-spacing: 6px;
+            margin-bottom: 6px;
+        }
+
+        .login-card__divider {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            letter-spacing: 3px;
+            margin-bottom: 24px;
+            font-weight: 700;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 14px;
+            font-size: 0.92rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            background-color: #f1f5f9;
+            color: #1e293b;
+            transition: all 0.2s ease;
+        }
+
+        .form-control:focus {
+            outline: 2px solid #f59e0b;
+            background-color: #ffffff;
+            border-color: #f59e0b;
+        }
+
+        .btn-login-submit {
+            width: 100%;
+            padding: 13px;
+            background-color: #f5b025;
+            color: #0f2b48;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .btn-login-submit:hover {
+            background-color: #e59d16;
+        }
+
+        .btn-login-submit:active {
+            transform: scale(0.99);
+        }
+
+        .sso-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #0f2b48;
+            font-size: 0.8rem;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            text-decoration: none;
+            text-transform: uppercase;
+        }
+
+        .sso-link:hover {
+            color: #f59e0b;
+        }
+
+        .forgot-password-link {
+            display: block;
+            margin-top: 16px;
+            font-size: 0.82rem;
+            color: #64748b;
+        }
+
+        .forgot-password-link a {
+            color: #0284c7;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .forgot-password-link a:hover {
+            text-decoration: underline;
+        }
+
+        /* Demo Quick Account Selector */
+        .demo-selector-box {
+            margin-top: 24px;
+            padding: 12px;
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 8px;
+            text-align: left;
+        }
+
+        .demo-selector-box p {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .demo-select {
+            width: 100%;
+            padding: 8px 10px;
+            font-size: 0.82rem;
+            border-radius: 5px;
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            color: #334155;
+            cursor: pointer;
+        }
+
+        .footer-note {
+            text-align: center;
+            padding: 16px;
+            font-size: 0.78rem;
+            color: #64748b;
+        }
+
+        /* Responsiveness */
+        @media (max-width: 900px) {
+            .login-container {
+                flex-direction: column;
+                justify-content: center;
+                padding: 16px 20px;
+            }
+
+            .hero-text {
+                text-align: center;
+                max-width: 100%;
+            }
+
+            .hero-campus-banner {
+                display: none;
+            }
+
+            .login-header {
+                padding: 16px 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="login-header">
+        <div class="login-header__logo">
+            <img src="https://portal.pknstan.ac.id/assets/plugins/images/stan_ico.ico" alt="Logo PKN STAN">
+        </div>
+        <nav class="login-header__nav">
+            <a href="#">Home</a>
+            <a href="#login-form" class="btn-header-login">LOGIN</a>
+        </nav>
+    </header>
+
+    <!-- Content -->
+    <main class="login-container">
+        <div class="hero-text">
+            <h2>Selamat Datang di</h2>
+            <h1>Portal Civitas PKN STAN</h1>
+            <p style="color: #334155; font-size: 1rem; line-height: 1.6;">
+                Layanan Terpadu Civitas Akademika Politeknik Keuangan Negara STAN untuk perkuliahan, bimbingan, dan fasilitas kampus.
+            </p>
+            <div class="hero-campus-banner">
+                <img src="view-portal.png" alt="Gedung Kampus PKN STAN" onerror="this.src='https://portal.pknstan.ac.id/assets/images/background.jpg'">
+            </div>
+        </div>
+
+        <div class="login-card" id="login-form">
+            <div class="login-card__title">LOGIN</div>
+            <div class="login-card__divider">= = = = =</div>
+
+            <form id="auth-form" onsubmit="handleLoginSubmit(event)">
+                <div class="form-group">
+                    <label for="username">NIM / Username</label>
+                    <input type="text" id="username" class="form-control" placeholder="Masukkan NIM Anda" value="4131230098" required autocomplete="username">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" class="form-control" placeholder="Masukkan Password" value="password" required autocomplete="current-password">
+                </div>
+
+                <button type="submit" class="btn-login-submit">MASUK</button>
+            </form>
+
+            <a href="javascript:void(0)" class="sso-link" onclick="quickLoginWithDefault()">SSO KEMENKEU</a>
+
+            <div class="forgot-password-link">
+                lupa password? <a href="javascript:void(0)" onclick="alert('Silakan hubungi Unit Sistem Informasi PKN STAN di Gedung P Lantai 2.')">ubah disini</a>
+            </div>
+
+            <!-- Quick Selector Akun Dummy (Mahasiswa 1 s.d. 23) -->
+            <div class="demo-selector-box">
+                <p><i class="fa fa-users"></i> Uji Akun Mahasiswa (Dummy 1 - 23):</p>
+                <select id="quick-student-select" class="demo-select" onchange="handleStudentSelect(this.value)">
+                    <option value="4131230098">Akun Utama: VERI GALIH SETIYO AJI (NIM 4131230098)</option>
+                    <!-- Populated via JS -->
+                </select>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer-note">
+        &copy; 2026 Politeknik Keuangan Negara STAN. Dikembangkan oleh Unit Sistem Informasi.
+    </footer>
+
+    <!-- Load dummy data -->
+    <script src="dummy-students.js"></script>
+    <script>
+        // Populate dummy students dropdown
+        document.addEventListener('DOMContentLoaded', () => {
+            const select = document.getElementById('quick-student-select');
+            if (typeof DUMMY_STUDENTS !== 'undefined' && select) {
+                DUMMY_STUDENTS.slice(1).forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.nim;
+                    opt.textContent = `${s.username}: ${s.nama} (${s.nim} - ${s.prodi})`;
+                    select.appendChild(opt);
+                });
+            }
+        });
+
+        function handleStudentSelect(nim) {
+            const student = DUMMY_STUDENTS.find(s => s.nim === nim);
+            if (student) {
+                document.getElementById('username').value = student.nim;
+                document.getElementById('password').value = 'password';
+            }
+        }
+
+        function handleLoginSubmit(event) {
+            event.preventDefault();
+            const usernameInput = document.getElementById('username').value.trim();
+            
+            let matchedStudent = null;
+            if (typeof findStudentByCredentials === 'function') {
+                matchedStudent = findStudentByCredentials(usernameInput);
+            }
+
+            if (!matchedStudent) {
+                // If user entered custom NIM, create generic civitas profile
+                matchedStudent = {
+                    nim: usernameInput,
+                    nama: `Mahasiswa (${usernameInput})`,
+                    email: `mhs_${usernameInput}@pknstan.ac.id`,
+                    prodi: 'Sarjana Terapan Akuntansi Sektor Publik',
+                    kelas: '6 Sisfo 5',
+                    hp: '081234567890'
+                };
+            }
+
+            // Save session
+            sessionStorage.setItem('current_civitas_user', JSON.stringify(matchedStudent));
+            localStorage.setItem('current_civitas_user', JSON.stringify(matchedStudent));
+
+            // Redirect directly to portal civitas tab Layanan > Peminjaman Ruang Diskusi
+            window.location.href = '/portal';
+        }
+
+        function quickLoginWithDefault() {
+            const defaultStudent = DUMMY_STUDENTS[0];
+            sessionStorage.setItem('current_civitas_user', JSON.stringify(defaultStudent));
+            localStorage.setItem('current_civitas_user', JSON.stringify(defaultStudent));
+            window.location.href = '/portal';
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,24 @@
+{
+  "name": "pinjam-rudis",
+  "version": "1.0.0",
+  "description": "Sistem Peminjaman Ruang Diskusi Civitas PKN STAN & Portal Resepsionis",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "tunnel": "npx --yes localtunnel --port 3000",
+    "tunnel:cloudflared": "npx --yes @cloudflare/cloudflared tunnel --url http://localhost:3000"
+  },
+  "keywords": [
+    "pknstan",
+    "pinjam-ruang-diskusi",
+    "realtime",
+    "socketio"
+  ],
+  "author": "Civitas PKN STAN",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  }
+}
