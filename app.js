@@ -119,6 +119,8 @@ function getSlotDateTime(dateStr, slotStr) {
     return new Date(year, month, day, hour, minute, 0, 0);
 }
 
+const MIN_REMAINING_MINUTES = 20;
+
 // Helper to calculate absolute end Date object for a booking slot
 function getSlotEndDateTime(dateStr, slotStr, durasiHours) {
     const startDateTime = getSlotDateTime(dateStr, slotStr);
@@ -127,13 +129,46 @@ function getSlotEndDateTime(dateStr, slotStr, durasiHours) {
     return new Date(startDateTime.getTime() + durasi * 60 * 60 * 1000);
 }
 
+// Helper to get remaining minutes until the end of a booking slot
+function getSlotRemainingMinutes(dateStr, slotStr, durasiHours = 1) {
+    if (!dateStr || !slotStr) return 0;
+    const todayStr = getTodayDateString();
+    if (dateStr < todayStr) return 0;
+    if (dateStr > todayStr) return 9999;
+
+    const endDt = getSlotEndDateTime(dateStr, slotStr, durasiHours);
+    if (!endDt) return 0;
+    const now = new Date();
+    return Math.floor((endDt.getTime() - now.getTime()) / 60000);
+}
+
 // Helper to check if a specific date and slot have already passed relative to current time
+// Rule: Ongoing slots remain available if there is still enough time (minimal 20 menit)
 function isSlotInPast(dateStr, slotStr) {
     if (!dateStr || !slotStr) return false;
-    const slotDateTime = getSlotDateTime(dateStr, slotStr);
-    if (!slotDateTime) return false;
+    const todayStr = getTodayDateString();
+    if (dateStr < todayStr) return true;
+    if (dateStr > todayStr) return false;
+
     const now = new Date();
-    return now >= slotDateTime;
+    const slotEnd1h = getSlotEndDateTime(dateStr, slotStr, 1);
+    if (!slotEnd1h) return false;
+
+    // Slot 11.00 (ends 12.00) and 15.00 (ends 16.00) are limited to 1 hour max.
+    // If remaining time is < 20 minutes before break/close (i.e. past 11.40 or 15.40), slot is in past.
+    if (slotStr === '11.00' || slotStr === '15.00') {
+        const remainingMin = Math.floor((slotEnd1h.getTime() - now.getTime()) / 60000);
+        return remainingMin < MIN_REMAINING_MINUTES;
+    }
+
+    // For other hourly slots (e.g. 10.00):
+    // Once the 1-hour window has completely elapsed (now >= 11.00), slot is in past.
+    if (now.getTime() >= slotEnd1h.getTime()) {
+        return true;
+    }
+
+    // During the slot hour (e.g. 10.00 - 10.59), the slot is NOT in past.
+    return false;
 }
 
 // Check and auto-expire bookings that exceeded 15-minute tolerance without key pickup
@@ -159,7 +194,8 @@ function checkAutoExpireBookings(notify = false) {
         if (b.status === 'Menunggu Kunci') {
             const startDateTime = getSlotDateTime(b.date, b.slot);
             if (startDateTime) {
-                const deadline = new Date(startDateTime.getTime() + GRACE_PERIOD_MS);
+                const baseTime = b.createdAt ? Math.max(startDateTime.getTime(), new Date(b.createdAt).getTime()) : startDateTime.getTime();
+                const deadline = new Date(baseTime + GRACE_PERIOD_MS);
                 if (now > deadline) {
                     b.status = 'Gugur (>15m)';
                     b.gugurReason = 'Otomatis gugur oleh sistem: Kunci tidak diambil dalam batas toleransi 15 menit.';
@@ -220,7 +256,8 @@ function getBookings() {
         if (b.status === 'Menunggu Kunci') {
             const startDateTime = getSlotDateTime(b.date, b.slot);
             if (startDateTime) {
-                const deadline = new Date(startDateTime.getTime() + GRACE_PERIOD_MS);
+                const baseTime = b.createdAt ? Math.max(startDateTime.getTime(), new Date(b.createdAt).getTime()) : startDateTime.getTime();
+                const deadline = new Date(baseTime + GRACE_PERIOD_MS);
                 if (now > deadline) {
                     b.status = 'Gugur (>15m)';
                     b.gugurReason = 'Otomatis gugur oleh sistem: Kunci tidak diambil dalam batas toleransi 15 menit.';
@@ -337,7 +374,10 @@ function updateSlotDropdownOptions(selectedDate) {
             opt.textContent = `${slotVal} (Waktu Lewat)`;
         } else {
             opt.disabled = false;
-            opt.textContent = slotVal;
+            const startDt = getSlotDateTime(dateStr, slotVal);
+            const now = new Date();
+            const isOngoing = (dateStr === getTodayDateString() && startDt && now >= startDt);
+            opt.textContent = isOngoing ? `${slotVal} (Jam Berjalan)` : slotVal;
             if (!firstAvailableValue) {
                 firstAvailableValue = slotVal;
             }
@@ -470,12 +510,21 @@ function renderMatrixGrid() {
             } else {
                 const isSelected = (room.id === selectedRoomId && slot === selectedSlot);
                 const activeClass = isSelected ? 'gantt-available-cell-selected' : '';
+                const now = new Date();
+                const startDt = getSlotDateTime(filterDate, slot);
+                const slotEnd1h = getSlotEndDateTime(filterDate, slot, 1);
+                const isOngoing = (filterDate === getTodayDateString() && startDt && now >= startDt && now < slotEnd1h);
+                const btnLabel = isOngoing ? 'Sisa Jam' : 'Pesan';
+                const btnIcon = isOngoing ? 'fa-hourglass-half' : 'fa-plus';
+                const cellTitle = isOngoing
+                    ? `Tersedia (Sesi Jam Berjalan) - Klik untuk pilih ${room.name} Jam ${slot} (Min. sisa 20 menit)`
+                    : `Tersedia - Klik untuk pilih ${room.name} Jam ${slot}`;
 
                 html += `<td class="gantt-available-cell ${activeClass}" 
-                             title="Tersedia - Klik untuk pilih ${room.name} Jam ${slot}"
+                             title="${cellTitle}"
                              onclick="selectSlotFromGrid('${room.id}', '${slot}')"
                              style="text-align: center; vertical-align: middle;">
-                             <span class="gantt-add-btn"><i class="fa fa-plus"></i> Pesan</span>
+                             <span class="gantt-add-btn"><i class="fa ${btnIcon}"></i> ${btnLabel}</span>
                          </td>`;
             }
 
@@ -575,8 +624,11 @@ function validateTimeSlotConstraints() {
 
     if (!durasiSelect) return;
 
+    const opt1 = durasiSelect.querySelector('option[value="1"]');
     const opt2 = durasiSelect.querySelector('option[value="2"]');
     const opt3 = durasiSelect.querySelector('option[value="3"]');
+
+    if (opt1) opt1.disabled = false;
 
     // Rule: 11.00 & 15.00 limit to 1 hour max
     if (slot === '11.00' || slot === '15.00') {
@@ -596,6 +648,36 @@ function validateTimeSlotConstraints() {
     // Constraint 2: Past Time Slot Check
     if (isSlotInPast(filterDate, slot)) {
         errorMessage = `Waktu peminjaman jam ${slot} pada tanggal ${filterDate} sudah terlewat. Silakan pilih waktu yang akan datang.`;
+    }
+
+    // Ongoing Slot Rule: Minimum 20 minutes remaining threshold
+    const isToday = (filterDate === getTodayDateString());
+    const slotStartDt = getSlotDateTime(filterDate, slot);
+    const now = new Date();
+    const isOngoing = isToday && slotStartDt && (now >= slotStartDt) && (now < getSlotEndDateTime(filterDate, slot, 1));
+
+    if (!errorMessage && isOngoing) {
+        const rem1 = getSlotRemainingMinutes(filterDate, slot, 1);
+        const rem2 = getSlotRemainingMinutes(filterDate, slot, 2);
+
+        if (rem1 < MIN_REMAINING_MINUTES) {
+            // 1 Hour is NOT allowed because remaining time is less than 20 minutes
+            if (opt1) opt1.disabled = true;
+
+            if (slot !== '11.00' && slot !== '15.00') {
+                if (durasiSelect.value === '1') {
+                    durasiSelect.value = '2';
+                }
+                const nowStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                warningMessage = `Sisa waktu menuju jam 11.00 saat ini (${nowStr}) hanya ${rem1} menit (< 20 menit). Durasi 1 Jam tidak diperbolehkan. Durasi otomatis dialihkan ke 2 Jam (selesai tetap pukul 12.00, sisa waktu efektif ~${rem2} menit).`;
+            } else {
+                errorMessage = `Sisa waktu untuk slot jam ${slot} hanya tersisa ${rem1} menit (< 20 menit) sebelum jam ${slot === '11.00' ? 'istirahat (12.00)' : 'tutup (16.00)'}. Pemesanan tidak dapat dilakukan.`;
+            }
+        } else {
+            const endHourStr = durasi === 2 ? '12.00' : '11.00';
+            const effMin = durasi === 2 ? rem2 : rem1;
+            warningMessage = `Pemesanan Sesi Jam Berjalan: Selesai tetap pukul ${endHourStr} (sisa waktu efektif ~${effMin} menit). Pengambilan kunci maksimal 15 menit sejak pemesanan dibuat.`;
+        }
     }
 
     // Constraint 1: Mahasiswa tidak bisa meminjam lebih dari 1 ruangan di waktu yang sama
@@ -737,6 +819,17 @@ function handleFormSubmit(e) {
         return;
     }
 
+    // Constraint: Minimum 20 minutes remaining threshold for ongoing slot booking
+    if (filterDate === getTodayDateString()) {
+        const remMin = getSlotRemainingMinutes(filterDate, slot, durasi);
+        const slotStartDt = getSlotDateTime(filterDate, slot);
+        const now = new Date();
+        if (slotStartDt && now >= slotStartDt && remMin < MIN_REMAINING_MINUTES) {
+            alert(`Pemesanan Ditolak: Sisa waktu sesi hanya tersisa ${remMin} menit (< 20 menit). Sesuai aturan, pemesanan sesi jam berjalan membutuhkan minimal 20 menit sisa waktu efektif. Silakan pilih durasi 2 jam (jika tersedia) atau pilih slot jam berikutnya.`);
+            return;
+        }
+    }
+
     if (jumlah < 3) {
         alert('Sesuai aturan, peminjaman minimal 3 orang per kelompok.');
         return;
@@ -833,8 +926,9 @@ function renderMyBookings() {
             badgeClass = 'badge-warning';
             const startDateTime = getSlotDateTime(b.date, b.slot);
             if (startDateTime) {
-                const deadline = new Date(startDateTime.getTime() + GRACE_PERIOD_MS);
-                if (now >= startDateTime && now <= deadline) {
+                const baseTime = b.createdAt ? Math.max(startDateTime.getTime(), new Date(b.createdAt).getTime()) : startDateTime.getTime();
+                const deadline = new Date(baseTime + GRACE_PERIOD_MS);
+                if (now >= new Date(baseTime) && now <= deadline) {
                     const remainingMin = Math.max(1, Math.ceil((deadline - now) / 60000));
                     statusSubtext = `<br><small style="color:#b58105; font-weight:600;"><i class="fa fa-stopwatch"></i> Ambil kunci s.d ${deadline.toTimeString().substring(0, 5)} (sisa ${remainingMin}m)</small>`;
                 } else if (now < startDateTime) {
@@ -942,8 +1036,9 @@ function renderAdminTable() {
             const startDateTime = getSlotDateTime(b.date, b.slot);
             let toleranceNote = '';
             if (startDateTime) {
-                const deadline = new Date(startDateTime.getTime() + GRACE_PERIOD_MS);
-                if (now >= startDateTime && now <= deadline) {
+                const baseTime = b.createdAt ? Math.max(startDateTime.getTime(), new Date(b.createdAt).getTime()) : startDateTime.getTime();
+                const deadline = new Date(baseTime + GRACE_PERIOD_MS);
+                if (now >= new Date(baseTime) && now <= deadline) {
                     const remainingMin = Math.max(1, Math.ceil((deadline - now) / 60000));
                     toleranceNote = `<br><small style="color:#b58105; font-weight:600;"><i class="fa fa-stopwatch"></i> Toleransi: sisa ${remainingMin} menit</small>`;
                 } else if (now < startDateTime) {

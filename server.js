@@ -144,7 +144,8 @@ function checkAutoExpire() {
         if (b.status === 'Menunggu Kunci') {
             const startDateTime = getSlotDateTime(b.date, b.slot);
             if (startDateTime) {
-                const deadline = new Date(startDateTime.getTime() + GRACE_PERIOD_MS);
+                const baseTime = b.createdAt ? Math.max(startDateTime.getTime(), new Date(b.createdAt).getTime()) : startDateTime.getTime();
+                const deadline = new Date(baseTime + GRACE_PERIOD_MS);
                 if (now > deadline) {
                     b.status = 'Gugur (>15m)';
                     b.gugurReason = 'Otomatis gugur oleh sistem: Kunci tidak diambil dalam batas toleransi 15 menit.';
