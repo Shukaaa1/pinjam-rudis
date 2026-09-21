@@ -122,6 +122,9 @@
                         <button id="btn-audio-toggle" class="btn btn-secondary btn-sm" onclick="toggleAudioChime()" title="Uji Nada Bel Peringatan">
                             <i class="fa fa-volume-up"></i> Suara Aktif
                         </button>
+                        <button id="btn-active-cancel" class="btn btn-outline-danger btn-sm hidden" onclick="cancelActiveSession()" title="Batalkan Peminjaman Sesi Ini">
+                            <i class="fa fa-times"></i> Batalkan Sesi
+                        </button>
                         <button class="btn btn-warning btn-sm" onclick="simulate5mWarning()" title="Simulasi Pengujian: Sisa 5 Menit">
                             <i class="fa fa-vial"></i> Tes 5m
                         </button>
@@ -207,30 +210,50 @@
                 <!-- TAB 2: RIWAYAT & PEMBATALAN SAYA -->
                 <div id="tab-history" class="tab-content hidden">
                     <div class="card">
-                        <div class="card-header">
-                            <span><i class="fa fa-list"></i> Daftar Peminjaman Saya</span>
+                        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                            <span><i class="fa fa-history"></i> Riwayat & Pembatalan Peminjaman Saya</span>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="renderMyBookings()">
+                                <i class="fa fa-sync"></i> Refresh Riwayat
+                            </button>
                         </div>
                         <div class="card-body">
-                            <div style="background: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 10px 14px; border-radius: 4px; font-size: 0.85rem; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
-                                <i class="fa fa-stopwatch" style="font-size: 1.1rem;"></i>
-                                <span><strong>Peringatan Toleransi 15 Menit:</strong> Pastikan Anda mengambil kunci di meja resepsionis paling lambat 15 menit setelah jadwal dimulai. Melewati 15 menit, pemesanan otomatis digugurkan oleh sistem dan ruangan dibuka kembali untuk mahasiswa lain.</span>
+                            <!-- Informasi Prosedur Pembatalan -->
+                            <div style="background: #e7f3fe; border: 1px solid #b6d4fe; color: #084298; padding: 12px 16px; border-radius: 4px; font-size: 0.88rem; margin-bottom: 12px; display: flex; align-items: flex-start; gap: 10px;">
+                                <i class="fa fa-info-circle" style="font-size: 1.2rem; margin-top: 2px;"></i>
+                                <div>
+                                    <strong>Fitur Pembatalan Mandiri:</strong>
+                                    Anda dapat membatalkan peminjaman yang berstatus <em>Menunggu Kunci</em> atau <em>Sedang Digunakan</em> dengan menekan tombol <strong>Batalkan</strong> di kolom aksi. Setelah dibatalkan, ruangan otomatis kembali terbuka pada jadwal real-time untuk mahasiswa lain.
+                                </div>
                             </div>
-                            <table class="table-custom">
-                                <thead>
-                                    <tr>
-                                        <th>ID / Kode</th>
-                                        <th>Ruangan</th>
-                                        <th>Tanggal & Jam</th>
-                                        <th>Durasi</th>
-                                        <th>Keperluan</th>
-                                        <th>Status</th>
-                                        <th>Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="my-bookings-body">
-                                    <!-- Dynamic JS rendered -->
-                                </tbody>
-                            </table>
+
+                            <!-- Peringatan Toleransi Keterlambatan -->
+                            <div style="background: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 12px 16px; border-radius: 4px; font-size: 0.88rem; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 10px;">
+                                <i class="fa fa-stopwatch" style="font-size: 1.2rem; margin-top: 2px;"></i>
+                                <div>
+                                    <strong>Peringatan Toleransi 15 Menit:</strong>
+                                    Pengambilan kunci di meja resepsionis (Gedung P Lantai 1) wajib dilakukan maksimal 15 menit sejak jadwal dimulai. Melewati 15 menit, pemesanan otomatis digugurkan oleh sistem (status: <em>Gugur (>15m)</em>).
+                                </div>
+                            </div>
+
+                            <!-- Tabel Riwayat Peminjaman -->
+                            <div style="overflow-x: auto;">
+                                <table class="table-custom">
+                                    <thead>
+                                        <tr>
+                                            <th>ID / Kode</th>
+                                            <th>Ruangan</th>
+                                            <th>Tanggal & Jam</th>
+                                            <th>Durasi</th>
+                                            <th>Keperluan</th>
+                                            <th>Status</th>
+                                            <th style="text-align:center;">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="my-bookings-body">
+                                        <!-- Dynamic JS rendered -->
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -239,41 +262,140 @@
                 <div id="tab-rules" class="tab-content hidden">
                     <div class="card">
                         <div class="card-header">
-                            <span><i class="fa fa-file-contract"></i> Ketentuan & Aturan Penting Peminjaman</span>
+                            <span><i class="fa fa-file-contract"></i> Panduan Resmi: Tata Cara, Aturan & Ketentuan Peminjaman Ruang Diskusi</span>
                         </div>
-                        <div class="card-body" style="line-height: 1.6;">
-                            <h5 style="color: var(--primary-color);"><i class="fa fa-clipboard-check"></i> Alur & Tata
-                                Cara Peminjaman</h5>
-                            <ol>
-                                <li><strong>Pengambilan Kunci:</strong> Ambil kunci di Lobi Depan / Meja Resepsionis
-                                    (Gedung P Lantai 1) 5 menit sebelum jadwal. Wajib menyerahkan <strong>KTM</strong>
-                                    (atau Kartu Identitas lain jika belum ada KTM) atas nama pemesan.</li>
-                                <li><strong>Penggunaan:</strong> Isi Daftar Kunjungan pada tautan di depan pintu
-                                    ruangan. Pastikan AC, Infokus, dan lampu mati, papan tulis bersih, serta tidak ada
-                                    sampah.</li>
-                                <li><strong>Pengembalian:</strong> Kembalikan kunci ke resepsionis setelah selesai dan
-                                    ambil kembali KTM/Kartu Identitas Anda.</li>
-                            </ol>
+                        <div class="card-body" style="line-height: 1.65; color: #333;">
 
-                            <hr style="border-top: 1px dashed #ced4da; margin: 1.5rem 0;">
+                            <!-- 1. Alur & Prosedur Peminjaman -->
+                            <h5 style="color: var(--primary-color); font-weight:700; margin-bottom: 12px; display:flex; align-items:center; gap:8px;">
+                                <i class="fa fa-clipboard-list"></i> Alur & Tata Cara Peminjaman
+                            </h5>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-bottom: 24px;">
+                                <div style="background: #f8f9fa; border: 1px solid #e9ecef; border-left: 4px solid #3f6ad8; border-radius: 4px; padding: 12px 15px;">
+                                    <strong style="color:#3f6ad8;"><i class="fa fa-search"></i> 1. Cek Jadwal & Pemesanan</strong>
+                                    <p style="margin: 6px 0 0; font-size: 0.88rem; color:#555;">
+                                        Cek ketersediaan ruangan pada portal real-time. Pemesanan dibuka mulai <strong>H-1 s.d H+7</strong>. Jumlah peserta minimal <strong>3 orang</strong> per kelompok.
+                                    </p>
+                                </div>
+                                <div style="background: #f8f9fa; border: 1px solid #e9ecef; border-left: 4px solid #3f6ad8; border-radius: 4px; padding: 12px 15px;">
+                                    <strong style="color:#3f6ad8;"><i class="fa fa-key"></i> 2. Pengambilan Kunci</strong>
+                                    <p style="margin: 6px 0 0; font-size: 0.88rem; color:#555;">
+                                        Ambil kunci di Lobi Depan / Meja Resepsionis (Gedung P Lt. 1) <strong>5 menit sebelum jadwal</strong>. Wajib menyerahkan <strong>KTM asli</strong> atas nama pemesan.
+                                    </p>
+                                </div>
+                                <div style="background: #f8f9fa; border: 1px solid #e9ecef; border-left: 4px solid #3f6ad8; border-radius: 4px; padding: 12px 15px;">
+                                    <strong style="color:#3f6ad8;"><i class="fa fa-edit"></i> 3. Penggunaan Ruangan</strong>
+                                    <p style="margin: 6px 0 0; font-size: 0.88rem; color:#555;">
+                                        Wajib mengisi Daftar Kunjungan pada tautan/QR code di pintu ruangan. Sebelum keluar, pastikan AC, infokus, dan lampu mati, papan tulis bersih, serta tidak ada sampah.
+                                    </p>
+                                </div>
+                                <div style="background: #f8f9fa; border: 1px solid #e9ecef; border-left: 4px solid #3f6ad8; border-radius: 4px; padding: 12px 15px;">
+                                    <strong style="color:#3f6ad8;"><i class="fa fa-undo"></i> 4. Pengembalian Kunci</strong>
+                                    <p style="margin: 6px 0 0; font-size: 0.88rem; color:#555;">
+                                        Kembalikan kunci ke resepsionis tepat waktu setelah selesai dan ambil kembali KTM Anda. Kunci tidak boleh dibawa pulang atau dihilangkan.
+                                    </p>
+                                </div>
+                                <div style="background: #f8f9fa; border: 1px solid #e9ecef; border-left: 4px solid #d92550; border-radius: 4px; padding: 12px 15px;">
+                                    <strong style="color:#d92550;"><i class="fa fa-times-circle"></i> 5. Pembatalan Peminjaman</strong>
+                                    <p style="margin: 6px 0 0; font-size: 0.88rem; color:#555;">
+                                        Jika kelompok berhalangan hadir, wajib batalkan peminjaman melalui tab <strong>Riwayat & Pembatalan Saya</strong> pada portal ini agar ruangan dapat digunakan kelompok lain.
+                                    </p>
+                                </div>
+                            </div>
 
-                            <h5 style="color: var(--danger-color);"><i class="fa fa-exclamation-triangle"></i> Aturan &
-                                Sanksi</h5>
-                            <ul>
-                                <li><strong>Toleransi Keterlambatan:</strong> Maksimal <strong>15 menit</strong>. Jika
-                                    tidak hadir dalam 15 menit, pemesanan dianggap gugur dan dialihkan ke kelompok lain.
-                                </li>
-                                <li><strong>Waktu Pemesanan:</strong> Paling cepat dilakukan pada H-1.</li>
-                                <li><strong>Kapasitas & Durasi:</strong> Minimal 3 orang, maksimal 10 orang (atau sesuai
-                                    kapasitas ruangan). Durasi peminjaman maksimal 2 jam/hari.</li>
-                                <li><strong>Larangan Khusus:</strong> Dilarang makan, minum, dan tidur di dalam ruang
-                                    diskusi. Kunci wajib dijaga (jika hilang wajib mengganti max H+1).</li>
-                                <li><strong>Pembatalan:</strong> Pembatalan paling lambat H-1 atau melalui menu "Riwayat
-                                    Saya".</li>
-                                <li><strong style="color: var(--danger-color);">Sanksi Pemblokiran:</strong> Melanggar
-                                    aturan akan dikenakan sanksi 1 kelas dilarang meminjam ruangan selama 1 semester.
-                                </li>
-                            </ul>
+                            <hr style="border: 0; border-top: 1px solid #dee2e6; margin: 20px 0;">
+
+                            <!-- 2. Ketentuan Operasional & Batas Waktu -->
+                            <h5 style="color: #212529; font-weight:700; margin-bottom: 12px; display:flex; align-items:center; gap:8px;">
+                                <i class="fa fa-clock"></i> Ketentuan Operasional & Batas Waktu
+                            </h5>
+                            <div style="margin-bottom: 20px;">
+                                <ul style="padding-left: 20px; font-size: 0.9rem; color:#444;">
+                                    <li style="margin-bottom: 8px;">
+                                        <strong>Toleransi Keterlambatan (15 Menit):</strong>
+                                        Batas pengambilan kunci maksimal 15 menit setelah jadwal dimulai. Jika kunci tidak diambil dalam 15 menit, pemesanan otomatis <strong>gugur</strong> oleh sistem dan dialihkan ke pemesan lain.
+                                    </li>
+                                    <li style="margin-bottom: 8px;">
+                                        <strong>Durasi Maksimal:</strong>
+                                        Durasi peminjaman reguler maksimal <strong>2 jam per hari</strong> per kelompok (dapat diperpanjang di resepsionis jika ruangan kosong). Peminjaman >2 jam khusus persiapan lomba wajib mengunggah Surat Tugas (ST) atau Nota Dinas (ND).
+                                    </li>
+                                    <li style="margin-bottom: 8px;">
+                                        <strong>Jam Istirahat & Sterilisasi (12.00 - 13.00):</strong>
+                                        Seluruh ruang diskusi steril dan tidak dapat digunakan saat jam istirahat. Pemesanan slot pukul 11.00 dibatasi maksimal 1 jam.
+                                    </li>
+                                    <li style="margin-bottom: 8px;">
+                                        <strong>Jam Tutup Layanan (16.00):</strong>
+                                        Layanan ruang diskusi perpustakaan tutup pukul 16.00. Pemesanan slot pukul 15.00 dibatasi maksimal 1 jam.
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <hr style="border: 0; border-top: 1px solid #dee2e6; margin: 20px 0;">
+
+                            <!-- 3. Daftar Ruangan & Kapasitas -->
+                            <h5 style="color: #212529; font-weight:700; margin-bottom: 12px; display:flex; align-items:center; gap:8px;">
+                                <i class="fa fa-door-open"></i> Daftar Ruang Diskusi & Kapasitas
+                            </h5>
+                            <div style="overflow-x: auto; margin-bottom: 20px;">
+                                <table class="table-custom" style="font-size: 0.88rem;">
+                                    <thead>
+                                        <tr>
+                                            <th>Kode Ruangan</th>
+                                            <th>Nama Ruangan</th>
+                                            <th>Kapasitas Maksimal</th>
+                                            <th>Fasilitas / Tipe Ruangan</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>RD-01 s.d RD-04</strong></td>
+                                            <td>Ruang Diskusi 1 s.d 4</td>
+                                            <td>8 Orang (Min. 3 Orang)</td>
+                                            <td>Meja diskusi, kursi ergonomis, papan tulis, AC, stopkontak</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>RD-05 & RD-06</strong></td>
+                                            <td>Ruang Diskusi 5 & 6</td>
+                                            <td>10 Orang (Min. 3 Orang)</td>
+                                            <td>Meja diskusi besar, kursi ergonomis, papan tulis, AC, stopkontak</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>RD-07</strong></td>
+                                            <td>Ruang Diskusi 7 (Lesehan)</td>
+                                            <td><strong>20 Orang</strong> (Min. 5 Orang)</td>
+                                            <td>Ruang karpet lesehan luas, meja rendah, AC, papan tulis, proyektor</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>RD-08 & RD-09</strong></td>
+                                            <td>Ruang Diskusi 8 & 9</td>
+                                            <td>8 Orang (Min. 3 Orang)</td>
+                                            <td>Meja diskusi, kursi ergonomis, papan tulis, AC, stopkontak</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <hr style="border: 0; border-top: 1px solid #dee2e6; margin: 20px 0;">
+
+                            <!-- 4. Larangan & Sanksi Tegas -->
+                            <h5 style="color: var(--danger-color); font-weight:700; margin-bottom: 12px; display:flex; align-items:center; gap:8px;">
+                                <i class="fa fa-exclamation-triangle"></i> Larangan Khusus & Sanksi
+                            </h5>
+                            <div style="background: #fff5f5; border: 1px solid #fed7d7; border-radius: 4px; padding: 14px 16px; margin-bottom: 10px;">
+                                <ul style="margin: 0; padding-left: 20px; font-size: 0.88rem; color: #721c24;">
+                                    <li style="margin-bottom: 6px;">
+                                        <strong>Dilarang keras makan, minum (selain air mineral), dan tidur</strong> di dalam ruang diskusi.
+                                    </li>
+                                    <li style="margin-bottom: 6px;">
+                                        <strong>Kunci wajib dijaga dengan baik.</strong> Kunci tidak boleh dibawa pulang. Apabila kunci hilang, peminjam wajib mengganti biaya kunci maksimal H+1.
+                                    </li>
+                                    <li>
+                                        <strong style="color: #9b2c2c;">Sanksi Pemblokiran Kelas:</strong>
+                                        Mahasiswa yang melanggar ketentuan (seperti meninggalkan sampah, merusak fasilitas, atau tidak hadir tanpa pembatalan) akan dikenakan sanksi berupa <strong>1 kelas yang bersangkutan dilarang meminjam ruang diskusi selama 1 semester penuh</strong>.
+                                    </li>
+                                </ul>
+                            </div>
+
                         </div>
                     </div>
                 </div>

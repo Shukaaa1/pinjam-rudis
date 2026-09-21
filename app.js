@@ -76,6 +76,24 @@ const SEED_BOOKINGS = [
         status: 'Menunggu Kunci',
         ktmVerified: false,
         createdAt: new Date().toISOString()
+    },
+    {
+        id: 'BK-2344',
+        nama: 'VERI GALIH SETIYO AJI',
+        nim: '4131230098',
+        prodi: 'Sarjana Terapan Akuntansi Sektor Publik',
+        kelas: '6 Sisfo 5',
+        hp: '081234567890',
+        roomId: 'RD-03',
+        roomName: 'Ruang Diskusi 3',
+        date: getTodayDateString(),
+        slot: '14.00',
+        durasi: 2,
+        jumlah: 4,
+        keperluan: 'Diskusi Proyek Sistem Informasi Akuntansi',
+        status: 'Menunggu Kunci',
+        ktmVerified: false,
+        createdAt: new Date().toISOString()
     }
 ];
 
@@ -428,16 +446,19 @@ function renderMatrixGrid() {
             if (activeBooking) {
                 const isStartSlot = activeBooking.slot === slot;
                 const isBooked = activeBooking.status === 'Sedang Digunakan';
+                const isMine = (activeBooking.nim === CURRENT_USER.nim);
                 const cellClass = isBooked ? 'gantt-cell-booked' : 'gantt-cell-pending';
-                const icon = isBooked ? 'fa-lock' : 'fa-clock';
                 const label = isBooked ? 'Terpakai' : 'Dipesan';
+                const userTitle = isMine ? `Pesanan Anda (${activeBooking.status}) - Klik untuk kelola / batalkan` : `${label} oleh ${activeBooking.nama} (${activeBooking.slot} - ${activeBooking.durasi} Jam)`;
+                const clickAttr = isMine ? `onclick="handleMyBookingClick('${activeBooking.id}')" style="cursor:pointer;"` : '';
+                const myTag = isMine && isStartSlot ? `<span class="badge" style="background:#0f2b48; color:#fff; font-size:0.68rem; padding:2px 5px; border-radius:3px; display:inline-block;"><i class="fa fa-user"></i> Anda</span>` : '&nbsp;';
 
                 if (isStartSlot) {
-                    html += `<td class="${cellClass}" title="${label} oleh ${activeBooking.nama} (${activeBooking.slot} - ${activeBooking.durasi} Jam)">
-                                &nbsp;
+                    html += `<td class="${cellClass}" ${clickAttr} title="${userTitle}">
+                                ${myTag}
                              </td>`;
                 } else {
-                    html += `<td class="${cellClass}" style="border-left:none;" title="Lanjutan ${label.toLowerCase()} oleh ${activeBooking.nama}">
+                    html += `<td class="${cellClass}" style="border-left:none;" ${clickAttr} title="Lanjutan ${userTitle}">
                                 &nbsp;
                              </td>`;
                 }
@@ -490,12 +511,41 @@ function selectSlotFromGrid(roomId, slot) {
     handleTimeSlotSelectChange();
     renderMatrixGrid();
 
+    // Populate user profile info in form
+    const namaEl = document.getElementById('form-nama');
+    const nimEl = document.getElementById('form-nim');
+    const prodiEl = document.getElementById('form-prodi');
+    const kelasEl = document.getElementById('form-kelas');
+    if (namaEl) namaEl.textContent = CURRENT_USER.nama;
+    if (nimEl) nimEl.textContent = CURRENT_USER.nim;
+    if (prodiEl) prodiEl.textContent = CURRENT_USER.prodi;
+    if (kelasEl) kelasEl.textContent = CURRENT_USER.kelas;
+
     // Show the booking modal
     const modal = document.getElementById('booking-modal');
     if (modal) {
         modal.classList.remove('hidden');
     }
 }
+
+// Handle click on user's own booking directly from the grid
+function handleMyBookingClick(bookingId) {
+    const bookings = getBookings();
+    const target = bookings.find(b => b.id === bookingId);
+    if (!target) return;
+
+    const confirmMsg = `Detail Pemesanan Anda:\n\n` +
+        `• Kode: ${target.id}\n` +
+        `• Ruangan: ${target.roomName}\n` +
+        `• Jadwal: ${target.date}, Jam ${target.slot} (${target.durasi} Jam)\n` +
+        `• Status: ${target.status}\n\n` +
+        `Apakah Anda ingin membatalkan peminjaman ruangan ini?`;
+
+    if (confirm(confirmMsg)) {
+        cancelBooking(bookingId);
+    }
+}
+window.handleMyBookingClick = handleMyBookingClick;
 
 function handleRoomSelectChange() {
     const roomId = document.getElementById('input-room')?.value;
@@ -613,6 +663,33 @@ function isSlotOccupied(startSlot, durasiHours, targetSlot) {
     if (startIndex === -1 || targetIndex === -1) return false;
     return targetIndex >= startIndex && targetIndex < (startIndex + durasiHours);
 }
+
+// Switch Tab Function
+function switchTab(tabId) {
+    const contents = document.querySelectorAll('.tab-content');
+    contents.forEach(content => content.classList.add('hidden'));
+
+    const buttons = document.querySelectorAll('.nav-tabs-custom .tab-btn');
+    buttons.forEach(btn => btn.classList.remove('active'));
+
+    const target = document.getElementById(tabId);
+    if (target) {
+        target.classList.remove('hidden');
+    }
+
+    buttons.forEach(btn => {
+        if (btn.getAttribute('onclick')?.includes(tabId)) {
+            btn.classList.add('active');
+        }
+    });
+
+    if (tabId === 'tab-history') {
+        renderMyBookings();
+    } else if (tabId === 'tab-matrix') {
+        renderMatrixGrid();
+    }
+}
+window.switchTab = switchTab;
 
 function closeModal(modalId) {
     document.getElementById(modalId).classList.add('hidden');
@@ -734,7 +811,13 @@ function renderMyBookings() {
     const bookings = getBookings().filter(b => b.nim === CURRENT_USER.nim);
 
     if (bookings.length === 0) {
-        body.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#888;">Belum ada riwayat peminjaman.</td></tr>`;
+        body.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 32px 16px; color:#6c757d;">
+            <i class="fa fa-folder-open" style="font-size: 2.2rem; margin-bottom: 12px; color:#adb5bd; display:block;"></i>
+            Belum ada riwayat peminjaman untuk akun <strong>${CURRENT_USER.nama}</strong> (${CURRENT_USER.nim}).<br>
+            <button type="button" class="btn btn-primary btn-sm" onclick="switchTab('tab-matrix')" style="margin-top: 14px; font-weight:600;">
+                <i class="fa fa-calendar-plus"></i> Buat Pemesanan Baru
+            </button>
+        </td></tr>`;
         return;
     }
 
@@ -760,6 +843,7 @@ function renderMyBookings() {
             }
         } else if (b.status === 'Sedang Digunakan') {
             badgeClass = 'badge-success';
+            statusSubtext = `<br><small style="color:#28a745;"><i class="fa fa-key"></i> Kunci aktif digunakan</small>`;
         } else if (b.status === 'Selesai') {
             badgeClass = 'badge-info';
         } else if (b.status === 'Gugur (>15m)') {
@@ -767,21 +851,27 @@ function renderMyBookings() {
             statusSubtext = `<br><small style="color:#dc3545;">Gugur: kunci tidak diambil >15 menit</small>`;
         } else if (b.status === 'Dibatalkan') {
             badgeClass = 'badge-danger';
+            if (b.cancelledAt) {
+                const cancelTime = new Date(b.cancelledAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                statusSubtext = `<br><small style="color:#6c757d;">Dibatalkan pukul ${cancelTime}</small>`;
+            }
         }
 
-        let cancelBtn = '';
+        let cancelBtn = '<span style="color:#adb5bd; font-size:0.85rem;">-</span>';
         if (['Menunggu Kunci', 'Sedang Digunakan'].includes(b.status)) {
-            cancelBtn = `<button class="btn btn-danger btn-sm" onclick="cancelBooking('${b.id}')"><i class="fa fa-times"></i> Batalkan</button>`;
+            cancelBtn = `<button type="button" class="btn btn-danger btn-sm" onclick="cancelBooking('${b.id}')" title="Batalkan Peminjaman Ruangan">
+                            <i class="fa fa-times"></i> Batalkan
+                         </button>`;
         }
 
         html += `<tr>
                     <td><strong>${b.id}</strong></td>
-                    <td>${b.roomName}</td>
+                    <td><strong>${b.roomName}</strong></td>
                     <td>${b.date}<br><small style="color:#6c757d;">Jam ${b.slot}</small></td>
                     <td>${b.durasi} Jam</td>
-                    <td>${b.keperluan}</td>
+                    <td>${b.keperluan || '-'}</td>
                     <td><span class="badge ${badgeClass}">${b.status}</span>${statusSubtext}</td>
-                    <td>${cancelBtn}</td>
+                    <td style="text-align:center;">${cancelBtn}</td>
                  </tr>`;
     });
 
@@ -790,18 +880,30 @@ function renderMyBookings() {
 
 // Cancel Booking Action
 function cancelBooking(bookingId) {
-    if (!confirm('Apakah Anda yakin ingin membatalkan peminjaman ruangan ini?')) return;
-
     const bookings = getBookings();
     const target = bookings.find(b => b.id === bookingId);
-    if (target) {
-        target.status = 'Dibatalkan';
-        saveBookings(bookings);
-        renderMatrixGrid();
-        renderMyBookings();
-        alert('Peminjaman berhasil dibatalkan. Ruangan kembali tersedia untuk pemesan lain.');
+    if (!target) {
+        alert('Data peminjaman tidak ditemukan.');
+        return;
     }
+
+    const confirmMsg = `Konfirmasi Pembatalan Peminjaman:\n\n` +
+        `• Kode Booking: ${target.id}\n` +
+        `• Ruangan: ${target.roomName}\n` +
+        `• Jadwal: ${target.date}, Pukul ${target.slot} (${target.durasi} Jam)\n` +
+        `• Pemesan: ${target.nama}\n\n` +
+        `Apakah Anda yakin ingin membatalkan peminjaman ruangan ini? Ruangan akan langsung kembali dibuka untuk mahasiswa lain.`;
+
+    if (!confirm(confirmMsg)) return;
+
+    target.status = 'Dibatalkan';
+    target.cancelledAt = new Date().toISOString();
+    saveBookings(bookings);
+    triggerAllUIRenders();
+
+    alert(`Peminjaman ${target.id} (${target.roomName}) berhasil dibatalkan.\nRuangan telah kembali tersedia untuk pemesan lain.`);
 }
+window.cancelBooking = cancelBooking;
 
 // --- ADMIN / RESEPSIONIS DASHBOARD FUNCTIONS --- //
 
@@ -1155,6 +1257,16 @@ function updateActiveSessionBanner() {
         metaEl.innerText = `Jadwal: ${active.slot} - ${slotEndStr} (${active.durasi} Jam) | Pemesan: ${active.nama}`;
     }
 
+    const cancelBtn = document.getElementById('btn-active-cancel');
+    if (cancelBtn) {
+        if (active.nim === CURRENT_USER.nim) {
+            cancelBtn.classList.remove('hidden');
+            cancelBtn.onclick = () => cancelBooking(active.id);
+        } else {
+            cancelBtn.classList.add('hidden');
+        }
+    }
+
     if (remainingMs > 5 * 60 * 1000) {
         // Normal state (> 5 mins)
         widget.classList.remove('warning-5m', 'expired');
@@ -1238,3 +1350,17 @@ function simulateEndWarning() {
     saveBookings(bookings);
     updateActiveSessionBanner();
 }
+
+// Cancel current active session directly
+function cancelActiveSession() {
+    const bookings = getBookings();
+    const active = bookings.find(b => b.nim === CURRENT_USER.nim && ['Menunggu Kunci', 'Sedang Digunakan'].includes(b.status))
+        || bookings.find(b => ['Menunggu Kunci', 'Sedang Digunakan'].includes(b.status));
+    if (active) {
+        cancelBooking(active.id);
+    } else {
+        alert('Tidak ada sesi peminjaman aktif yang dapat dibatalkan.');
+    }
+}
+window.cancelActiveSession = cancelActiveSession;
+

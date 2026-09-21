@@ -67,6 +67,24 @@ function readBookings() {
                     status: 'Menunggu Kunci',
                     ktmVerified: false,
                     createdAt: new Date().toISOString()
+                },
+                {
+                    id: 'BK-2344',
+                    nama: 'VERI GALIH SETIYO AJI',
+                    nim: '4131230098',
+                    prodi: 'Sarjana Terapan Akuntansi Sektor Publik',
+                    kelas: '6 Sisfo 5',
+                    hp: '081234567890',
+                    roomId: 'RD-03',
+                    roomName: 'Ruang Diskusi 3',
+                    date: getTodayDateString(),
+                    slot: '14.00',
+                    durasi: 2,
+                    jumlah: 4,
+                    keperluan: 'Diskusi Proyek Sistem Informasi Akuntansi',
+                    status: 'Menunggu Kunci',
+                    ktmVerified: false,
+                    createdAt: new Date().toISOString()
                 }
             ];
             fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
