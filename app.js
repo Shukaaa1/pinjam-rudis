@@ -1032,10 +1032,23 @@ function renderAdminTable() {
     let html = '';
     filtered.forEach(b => {
         let statusBadge = `<span class="badge badge-secondary">${b.status}</span>`;
+        let isTooEarly = false;
+        let earliestStr = '';
+        let isKeyNotReturned = false;
+        let unreturnedBooking = null;
+
         if (b.status === 'Menunggu Kunci') {
             const startDateTime = getSlotDateTime(b.date, b.slot);
             let toleranceNote = '';
             if (startDateTime) {
+                const earliestHandoverTime = new Date(startDateTime.getTime() - 10 * 60 * 1000);
+                if (now < earliestHandoverTime) {
+                    isTooEarly = true;
+                    const hh = String(earliestHandoverTime.getHours()).padStart(2, '0');
+                    const mm = String(earliestHandoverTime.getMinutes()).padStart(2, '0');
+                    earliestStr = `${hh}.${mm}`;
+                }
+
                 const baseTime = b.createdAt ? Math.max(startDateTime.getTime(), new Date(b.createdAt).getTime()) : startDateTime.getTime();
                 const deadline = new Date(baseTime + GRACE_PERIOD_MS);
                 if (now >= new Date(baseTime) && now <= deadline) {
@@ -1045,7 +1058,25 @@ function renderAdminTable() {
                     toleranceNote = `<br><small style="color:#6c757d;">Mulai jam ${b.slot}</small>`;
                 }
             }
-            statusBadge = `<span class="badge badge-warning"><i class="fa fa-clock"></i> Menunggu Kunci</span>${toleranceNote}`;
+
+            // Check if another borrower currently has the physical key for the same room
+            unreturnedBooking = bookings.find(other => 
+                other.roomId === b.roomId && 
+                other.id !== b.id && 
+                other.status === 'Sedang Digunakan'
+            );
+            if (unreturnedBooking) {
+                isKeyNotReturned = true;
+            }
+
+            let constraintNote = '';
+            if (isKeyNotReturned) {
+                constraintNote = `<br><small style="color:#dc3545; font-weight:600;"><i class="fa fa-exclamation-triangle"></i> Kunci fisik masih di: ${unreturnedBooking.nama}</small>`;
+            } else if (isTooEarly) {
+                constraintNote = `<br><small style="color:#4a5568; font-weight:500;"><i class="fa fa-hourglass-start"></i> Ambil kunci mulai ${earliestStr} (H-10m)</small>`;
+            }
+
+            statusBadge = `<span class="badge badge-warning"><i class="fa fa-clock"></i> Menunggu Kunci</span>${toleranceNote}${constraintNote}`;
         } else if (b.status === 'Sedang Digunakan') {
             statusBadge = `<span class="badge badge-success"><i class="fa fa-key"></i> Kunci Diserahkan</span>`;
         } else if (b.status === 'Selesai') {
@@ -1059,10 +1090,22 @@ function renderAdminTable() {
 
         let actionBtns = '';
         if (b.status === 'Menunggu Kunci') {
-            actionBtns = `
-                <button class="btn btn-success btn-sm" onclick="adminHandoverKey('${b.id}')"><i class="fa fa-key"></i> Serahkan Kunci</button>
-                <button class="btn btn-danger btn-sm" onclick="adminMarkGugur('${b.id}')" title="Terlambat >15 Menit"><i class="fa fa-user-slash"></i> Gugurkan</button>
-            `;
+            if (isKeyNotReturned) {
+                actionBtns = `
+                    <button class="btn btn-warning btn-sm" onclick="adminHandoverKey('${b.id}')" title="Kunci belum dikembalikan oleh ${unreturnedBooking.nama} (Slot ${unreturnedBooking.slot})"><i class="fa fa-exclamation-triangle"></i> Kunci Belum Kembali</button>
+                    <button class="btn btn-danger btn-sm" onclick="adminMarkGugur('${b.id}')" title="Terlambat >15 Menit"><i class="fa fa-user-slash"></i> Gugurkan</button>
+                `;
+            } else if (isTooEarly) {
+                actionBtns = `
+                    <button class="btn btn-secondary btn-sm" onclick="adminHandoverKey('${b.id}')" title="Kunci baru dapat diserahkan paling cepat 10 menit sebelum jadwal (pukul ${earliestStr})"><i class="fa fa-clock"></i> Belum Waktunya (H-10m)</button>
+                    <button class="btn btn-danger btn-sm" onclick="adminMarkGugur('${b.id}')" title="Terlambat >15 Menit"><i class="fa fa-user-slash"></i> Gugurkan</button>
+                `;
+            } else {
+                actionBtns = `
+                    <button class="btn btn-success btn-sm" onclick="adminHandoverKey('${b.id}')"><i class="fa fa-key"></i> Serahkan Kunci</button>
+                    <button class="btn btn-danger btn-sm" onclick="adminMarkGugur('${b.id}')" title="Terlambat >15 Menit"><i class="fa fa-user-slash"></i> Gugurkan</button>
+                `;
+            }
         } else if (b.status === 'Sedang Digunakan') {
             actionBtns = `
                 <button class="btn btn-primary btn-sm" onclick="adminReturnKey('${b.id}')"><i class="fa fa-box"></i> Terima Kunci & Selesai</button>
@@ -1085,23 +1128,67 @@ function renderAdminTable() {
 function adminHandoverKey(bookingId) {
     const bookings = getBookings();
     const target = bookings.find(b => b.id === bookingId);
-    if (target) {
-        const now = new Date();
-        target.status = 'Sedang Digunakan';
-        target.startedAt = now.toISOString();
-
-        // Calculate absolute scheduled end time based on slot & duration
-        const scheduledEnd = getSlotEndDateTime(target.date, target.slot, target.durasi);
-        target.scheduledEndAt = scheduledEnd ? scheduledEnd.toISOString() : new Date(now.getTime() + target.durasi * 3600000).toISOString();
-        target.warned5m = false;
-        target.warnedEnd = false;
-
-        saveBookings(bookings);
-        renderAdminTable();
-        renderAdminRoomGrid();
-        if (typeof updateActiveSessionBanner === 'function') updateActiveSessionBanner();
-        alert(`Kunci untuk ${target.roomName} telah diserahkan kepada ${target.nama}. Sesi resmi dimulai dan status diperbarui menjadi "Sedang Digunakan".`);
+    if (!target) {
+        alert('Data peminjaman tidak ditemukan.');
+        return;
     }
+
+    if (target.status !== 'Menunggu Kunci') {
+        alert(`Peminjaman ini sudah berstatus "${target.status}" dan tidak dapat diserahkan kuncinya lagi.`);
+        return;
+    }
+
+    const now = new Date();
+
+    // Constraint 1: Waktu pengambilan kunci minimal 10 menit sebelum digunakan (H-10 menit)
+    const startDateTime = getSlotDateTime(target.date, target.slot);
+    if (startDateTime) {
+        const earliestHandover = new Date(startDateTime.getTime() - 10 * 60 * 1000);
+        if (now < earliestHandover) {
+            const hh = String(earliestHandover.getHours()).padStart(2, '0');
+            const mm = String(earliestHandover.getMinutes()).padStart(2, '0');
+            const earliestStr = `${hh}.${mm}`;
+            alert(`[Penyerahan Kunci Ditolak - Belum Waktunya]\n\n` +
+                  `Kunci ${target.roomName} hanya dapat diambil paling cepat 10 menit sebelum jadwal sesi dimulai.\n\n` +
+                  `• Ruangan: ${target.roomName}\n` +
+                  `• Jadwal Penggunaan: ${target.date}, Pukul ${target.slot}\n` +
+                  `• Pengambilan Kunci Dibuka: Pukul ${earliestStr} WIB (H-10 Menit)\n` +
+                  `• Pemesan: ${target.nama} (${target.nim})\n\n` +
+                  `Harap informasikan kepada peminjam untuk menunggu dan kembali ke resepsionis pada pukul ${earliestStr}.`);
+            return;
+        }
+    }
+
+    // Constraint 2: Kunci ruangan yang sama belum dikembalikan oleh peminjam sebelumnya
+    const unreturned = bookings.find(b => b.roomId === target.roomId && b.id !== target.id && b.status === 'Sedang Digunakan');
+    if (unreturned) {
+        alert(`[Penyerahan Kunci Ditolak - Kunci Belum Kembali]\n\n` +
+              `Petugas tidak dapat menyerahkan kunci ${target.roomName} kepada ${target.nama} karena kunci fisik saat ini MASIH DIGUNAKAN oleh peminjam sebelumnya:\n\n` +
+              `• Pemegang Kunci: ${unreturned.nama} (NIM: ${unreturned.nim})\n` +
+              `• Kelas / Prodi: ${unreturned.kelas || '-'} / ${unreturned.prodi || '-'}\n` +
+              `• Slot Pemakaian: Pukul ${unreturned.slot} (${unreturned.durasi} Jam)\n` +
+              `• Kode Booking: ${unreturned.id}\n\n` +
+              `Langkah Tindakan Petugas Resepsionis:\n` +
+              `1. Hubungi atau tunggu peminjam sebelumnya (${unreturned.nama}) untuk mengembalikan kunci fisik ruangan ke meja resepsionis.\n` +
+              `2. Klik tombol "Terima Kunci & Selesai" pada baris peminjaman ${unreturned.nama}.\n` +
+              `3. Setelah kunci fisik tercatat kembali di resepsionis, barulah kunci dapat diserahkan kepada peminjam berikutnya (${target.nama}).`);
+        return;
+    }
+
+    target.status = 'Sedang Digunakan';
+    target.startedAt = now.toISOString();
+
+    // Calculate absolute scheduled end time based on slot & duration
+    const scheduledEnd = getSlotEndDateTime(target.date, target.slot, target.durasi);
+    target.scheduledEndAt = scheduledEnd ? scheduledEnd.toISOString() : new Date(now.getTime() + target.durasi * 3600000).toISOString();
+    target.warned5m = false;
+    target.warnedEnd = false;
+
+    saveBookings(bookings);
+    renderAdminTable();
+    renderAdminRoomGrid();
+    if (typeof updateActiveSessionBanner === 'function') updateActiveSessionBanner();
+    alert(`Kunci untuk ${target.roomName} berhasil diserahkan kepada ${target.nama}.\n\nSesi pemakaian resmi dimulai dan status ruangan diperbarui menjadi "Sedang Digunakan".`);
 }
 
 function adminReturnKey(bookingId) {
@@ -1143,31 +1230,34 @@ function renderAdminRoomGrid() {
 
     let html = '';
     MASTER_ROOMS.forEach(room => {
-        // Active booking for this room today
-        const active = bookings.find(b => b.roomId === room.id && b.date === today && ['Menunggu Kunci', 'Sedang Digunakan'].includes(b.status));
+        // Prioritize in-use booking first, then waiting booking
+        const inUse = bookings.find(b => b.roomId === room.id && b.date === today && b.status === 'Sedang Digunakan');
+        const waiting = bookings.find(b => b.roomId === room.id && b.date === today && b.status === 'Menunggu Kunci');
 
         let cardBg = '#f8f9fa';
         let border = '1px solid #ced4da';
         let statusText = '<span style="color:#28a745; font-weight:bold;"><i class="fa fa-check-circle"></i> Kosong / Tersedia</span>';
         let info = '-';
 
-        if (active) {
-            if (active.status === 'Sedang Digunakan') {
-                cardBg = '#fff5f5';
-                border = '1px solid #f5c2c7';
-                statusText = '<span style="color:#d92550; font-weight:bold;"><i class="fa fa-door-closed"></i> Terpakai</span>';
-                info = `Digunakan oleh: <strong>${active.nama}</strong> (${active.slot} - ${active.durasi} Jam)`;
-            } else {
-                cardBg = '#fffdf0';
-                border = '1px solid #ffecb5';
-                statusText = '<span style="color:#b58105; font-weight:bold;"><i class="fa fa-clock"></i> Dipesan (Menunggu Kunci)</span>';
-                info = `Pemesan: <strong>${active.nama}</strong> (${active.slot})`;
+        if (inUse) {
+            cardBg = '#fff5f5';
+            border = '1px solid #f5c2c7';
+            statusText = '<span style="color:#d92550; font-weight:bold;"><i class="fa fa-door-closed"></i> Terpakai (Kunci di Luar)</span>';
+            let nextInfo = '';
+            if (waiting) {
+                nextInfo = `<br><span style="color:#b58105; font-size:0.75rem;"><i class="fa fa-user-clock"></i> Peminjam berikutnya: ${waiting.nama} (${waiting.slot}) - Kunci tertahan</span>`;
             }
+            info = `Digunakan oleh: <strong>${inUse.nama}</strong> (${inUse.slot} - ${inUse.durasi} Jam)${nextInfo}`;
+        } else if (waiting) {
+            cardBg = '#fffdf0';
+            border = '1px solid #ffecb5';
+            statusText = '<span style="color:#b58105; font-weight:bold;"><i class="fa fa-clock"></i> Dipesan (Menunggu Kunci)</span>';
+            info = `Pemesan: <strong>${waiting.nama}</strong> (${waiting.slot})`;
         }
 
         html += `
             <div style="background:${cardBg}; border:${border}; padding:15px; border-radius:6px;">
-                <div style="display:flex; justify-shadow:space-between; justify-content:space-between; align-items:center;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
                     <h5 style="margin:0; font-size:1rem;">${room.name}</h5>
                     <small style="color:#888;">${room.desc}</small>
                 </div>
