@@ -2136,53 +2136,16 @@ function playSingleChime(type = 'notification') {
 }
 window.playSingleChime = playSingleChime;
 
-// Controller pengulangan nada peringatan (khusus warning dibunyikan 10 kali)
-let warningChimeTimeout = null;
-let warningChimeCount = 0;
-
+// Pengendali suara peringatan (semua suara diputar tepat 1 kali saja agar nyaman)
 function stopWarningChime() {
-    if (warningChimeTimeout) {
-        clearTimeout(warningChimeTimeout);
-        warningChimeTimeout = null;
-    }
-    warningChimeCount = 0;
+    // Fungsi pembantu kompatibilitas saat modal ditutup
 }
 window.stopWarningChime = stopWarningChime;
 
-function playWarningSequence(total = 10, intervalMs = 1200) {
-    stopWarningChime();
-    if (!soundEnabled) return;
-
-    warningChimeCount = 0;
-    const step = () => {
-        if (!soundEnabled || warningChimeCount >= total) {
-            stopWarningChime();
-            return;
-        }
-        warningChimeCount++;
-        playSingleChime('warning');
-
-        if (warningChimeCount < total) {
-            warningChimeTimeout = setTimeout(step, intervalMs);
-        } else {
-            warningChimeTimeout = null;
-        }
-    };
-
-    step();
-}
-window.playWarningSequence = playWarningSequence;
-
-// Fungsi utama: memutar suara notifikasi
-// Secara default diputar tepat 1 kali saja, kecuali peringatan 'warning' (5 menit) yang berulang 10 kali
+// Fungsi utama: memutar suara notifikasi tepat 1 kali saja untuk semua tipe (notification, warning, urgent)
 function playChimeSound(type = 'notification') {
     if (!soundEnabled) return;
-
-    if (type === 'warning') {
-        playWarningSequence(10, 1200);
-    } else {
-        playSingleChime(type);
-    }
+    playSingleChime(type);
 }
 
 // Expose helper pengujian audio di console browser
