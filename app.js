@@ -121,12 +121,39 @@ function getSlotDateTime(dateStr, slotStr) {
 
 const MIN_REMAINING_MINUTES = 20;
 
+// Helper to calculate end slot time string
+function getBookingEndSlotString(startSlot, durasiHours) {
+    const startIndex = TIME_SLOTS.indexOf(startSlot);
+    if (startIndex === -1) return '';
+    const lastIndex = Math.min(TIME_SLOTS.length - 1, startIndex + parseInt(durasiHours || 1, 10) - 1);
+    const endMap = {
+        '08.00': '09.00',
+        '09.00': '10.00',
+        '10.00': '11.00',
+        '11.00': '12.00',
+        '13.00': '14.00',
+        '14.00': '15.00',
+        '15.00': '16.00'
+    };
+    return endMap[TIME_SLOTS[lastIndex]] || '';
+}
+
 // Helper to calculate absolute end Date object for a booking slot
 function getSlotEndDateTime(dateStr, slotStr, durasiHours) {
     const startDateTime = getSlotDateTime(dateStr, slotStr);
     if (!startDateTime) return null;
     const durasi = parseInt(durasiHours || 1, 10);
-    return new Date(startDateTime.getTime() + durasi * 60 * 60 * 1000);
+    const startIndex = TIME_SLOTS.indexOf(slotStr);
+    if (startIndex === -1) {
+        return new Date(startDateTime.getTime() + durasi * 60 * 60 * 1000);
+    }
+    const lastIndex = Math.min(TIME_SLOTS.length - 1, startIndex + durasi - 1);
+    const endSlotStr = TIME_SLOTS[lastIndex];
+    const endSlotStartDt = getSlotDateTime(dateStr, endSlotStr);
+    if (!endSlotStartDt) {
+        return new Date(startDateTime.getTime() + durasi * 60 * 60 * 1000);
+    }
+    return new Date(endSlotStartDt.getTime() + 60 * 60 * 1000);
 }
 
 // Helper to get remaining minutes until the end of a booking slot
@@ -340,7 +367,20 @@ async function fetchBookingsFromServer() {
 
 // Save Bookings to localStorage, Server API, and Dispatch Realtime Event
 function saveBookings(bookings) {
-    localStorage.setItem('pinjam_rudis_bookings', JSON.stringify(bookings));
+    try {
+        localStorage.setItem('pinjam_rudis_bookings', JSON.stringify(bookings));
+    } catch (e) {
+        console.warn('[Storage] LocalStorage quota penuh, menyimpan metadata berkas tanpa base64:', e);
+        try {
+            const trimmed = bookings.map(b => {
+                if (b.suratTugas && b.suratTugas.fileData) {
+                    return { ...b, suratTugas: { ...b.suratTugas, fileData: null } };
+                }
+                return b;
+            });
+            localStorage.setItem('pinjam_rudis_bookings', JSON.stringify(trimmed));
+        } catch (err2) {}
+    }
     window.dispatchEvent(new Event('storage'));
 
     // Emit via Socket.IO if connected
@@ -611,6 +651,124 @@ function handleTimeSlotSelectChange() {
     renderMatrixGrid();
 }
 
+// Helper to read uploaded file as Base64 Data URL
+function readFileAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+        reader.readAsDataURL(file);
+    });
+}
+
+// Update dynamic options for ST Hours select dropdown
+function updateSTHoursOptions() {
+    const slot = document.getElementById('input-slot')?.value;
+    const stSelect = document.getElementById('input-durasi-jam');
+    if (!stSelect) return;
+
+    const currentVal = stSelect.value;
+    const startIndex = TIME_SLOTS.indexOf(slot);
+    const maxSlots = startIndex !== -1 ? (TIME_SLOTS.length - startIndex) : 3;
+
+    stSelect.innerHTML = '';
+    for (let h = 3; h <= maxSlots; h++) {
+        const opt = document.createElement('option');
+        opt.value = String(h);
+        const endStr = getBookingEndSlotString(slot, h);
+        const spansBreak = (startIndex <= 3 && (startIndex + h) > 4);
+        const note = spansBreak ? ' (Termasuk jeda 12.00 - 13.00)' : '';
+        opt.textContent = `${h} Jam (s.d. ${endStr})${note}`;
+        stSelect.appendChild(opt);
+    }
+
+    if (currentVal && stSelect.querySelector(`option[value="${currentVal}"]`)) {
+        stSelect.value = currentVal;
+    }
+}
+
+function handleDurasiChange() {
+    const durasiSelect = document.getElementById('input-durasi');
+    const isST = (durasiSelect?.value === 'surat_tugas' || durasiSelect?.value === '3');
+    const stHoursGroup = document.getElementById('st-hours-group');
+    const docGroup = document.getElementById('doc-upload-group');
+    const docInput = document.getElementById('input-doc');
+
+    if (stHoursGroup) {
+        if (isST) {
+            stHoursGroup.classList.remove('hidden');
+            updateSTHoursOptions();
+        } else {
+            stHoursGroup.classList.add('hidden');
+        }
+    }
+
+    if (docGroup) {
+        if (isST) {
+            docGroup.classList.remove('hidden');
+            if (docInput) docInput.required = true;
+        } else {
+            docGroup.classList.add('hidden');
+            if (docInput) {
+                docInput.required = false;
+                docInput.value = '';
+                docInput.style.borderColor = '';
+                const docStatus = document.getElementById('doc-file-status');
+                if (docStatus) docStatus.textContent = '';
+            }
+        }
+    }
+}
+
+function handleDocFileChange(input) {
+    const statusEl = document.getElementById('doc-file-status');
+    if (!input.files || input.files.length === 0) {
+        if (statusEl) {
+            statusEl.textContent = 'Belum ada berkas dipilih';
+            statusEl.style.color = '#dc2626';
+        }
+        return;
+    }
+
+    const file = input.files[0];
+    const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+    if (file.size > MAX_SIZE) {
+        alert('Peringatan: Ukuran berkas terlalu besar. Maksimal 5 MB.');
+        input.value = '';
+        if (statusEl) {
+            statusEl.textContent = 'Ukuran berkas melebihi 5 MB';
+            statusEl.style.color = '#dc2626';
+        }
+        return;
+    }
+
+    const validExtensions = ['.pdf', '.png', '.jpg', '.jpeg'];
+    const fileName = file.name.toLowerCase();
+    const isValidExt = validExtensions.some(ext => fileName.endsWith(ext));
+    if (!isValidExt) {
+        alert('Peringatan: Format berkas tidak didukung. Harap unggah berkas PDF, PNG, atau JPG.');
+        input.value = '';
+        if (statusEl) {
+            statusEl.textContent = 'Format tidak sesuai';
+            statusEl.style.color = '#dc2626';
+        }
+        return;
+    }
+
+    input.style.borderColor = '#16a34a';
+    if (statusEl) {
+        const sizeKb = Math.round(file.size / 1024);
+        statusEl.innerHTML = `<i class="fa fa-check-circle"></i> ${file.name} (${sizeKb} KB)`;
+        statusEl.style.color = '#15803d';
+    }
+}
+window.handleDocFileChange = handleDocFileChange;
+
+function handleDurasiSelectChange() {
+    handleDurasiChange();
+    validateTimeSlotConstraints();
+}
+
 // Dynamic Time Constraints Validation & Live Conflict Feedback
 function validateTimeSlotConstraints() {
     const slot = document.getElementById('input-slot')?.value;
@@ -619,28 +777,46 @@ function validateTimeSlotConstraints() {
     const notice = document.getElementById('time-constraint-notice');
     const filterDate = document.getElementById('filter-date')?.value || getTodayDateString();
     const roomId = document.getElementById('input-room')?.value;
-    const durasi = parseInt(durasiSelect?.value || '1', 10);
     const room = MASTER_ROOMS.find(r => r.id === roomId);
 
     if (!durasiSelect) return;
 
     const opt1 = durasiSelect.querySelector('option[value="1"]');
     const opt2 = durasiSelect.querySelector('option[value="2"]');
-    const opt3 = durasiSelect.querySelector('option[value="3"]');
+    const optST = durasiSelect.querySelector('option[value="surat_tugas"]') || durasiSelect.querySelector('option[value="3"]');
 
     if (opt1) opt1.disabled = false;
 
+    const startIndex = TIME_SLOTS.indexOf(slot);
+    const maxPossibleSlots = startIndex !== -1 ? (TIME_SLOTS.length - startIndex) : 1;
+
     // Rule: 11.00 & 15.00 limit to 1 hour max
     if (slot === '11.00' || slot === '15.00') {
-        durasiSelect.value = "1";
+        if (durasiSelect.value !== '1') durasiSelect.value = '1';
         if (opt2) opt2.disabled = true;
-        if (opt3) opt3.disabled = true;
+        if (optST) optST.disabled = true;
+    } else if (slot === '14.00' || maxPossibleSlots < 3) {
+        // Slot 14.00 only has 2 slots left until 16.00 closing
+        if (durasiSelect.value === 'surat_tugas' || durasiSelect.value === '3') {
+            durasiSelect.value = '2';
+        }
+        if (opt2) opt2.disabled = false;
+        if (optST) optST.disabled = true;
     } else {
         if (opt2) opt2.disabled = false;
-        if (opt3) opt3.disabled = false;
+        if (optST) optST.disabled = false;
     }
 
     handleDurasiChange();
+
+    const isST = (durasiSelect.value === 'surat_tugas' || durasiSelect.value === '3');
+    let durasi = 1;
+    if (isST) {
+        const stJamSelect = document.getElementById('input-durasi-jam');
+        durasi = parseInt(stJamSelect?.value || '3', 10);
+    } else {
+        durasi = parseInt(durasiSelect.value || '1', 10);
+    }
 
     let errorMessage = '';
     let warningMessage = '';
@@ -667,6 +843,7 @@ function validateTimeSlotConstraints() {
             if (slot !== '11.00' && slot !== '15.00') {
                 if (durasiSelect.value === '1') {
                     durasiSelect.value = '2';
+                    durasi = 2;
                 }
                 const nowStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
                 warningMessage = `Sisa waktu menuju jam 11.00 saat ini (${nowStr}) hanya ${rem1} menit (< 20 menit). Durasi 1 Jam tidak diperbolehkan. Durasi otomatis dialihkan ke 2 Jam (selesai tetap pukul 12.00, sisa waktu efektif ~${rem2} menit).`;
@@ -674,9 +851,9 @@ function validateTimeSlotConstraints() {
                 errorMessage = `Sisa waktu untuk slot jam ${slot} hanya tersisa ${rem1} menit (< 20 menit) sebelum jam ${slot === '11.00' ? 'istirahat (12.00)' : 'tutup (16.00)'}. Pemesanan tidak dapat dilakukan.`;
             }
         } else {
-            const endHourStr = durasi === 2 ? '12.00' : '11.00';
-            const effMin = durasi === 2 ? rem2 : rem1;
-            warningMessage = `Pemesanan Sesi Jam Berjalan: Selesai tetap pukul ${endHourStr} (sisa waktu efektif ~${effMin} menit). Pengambilan kunci maksimal 15 menit sejak pemesanan dibuat.`;
+            const endHourStr = getBookingEndSlotString(slot, durasi);
+            const effMin = getSlotRemainingMinutes(filterDate, slot, durasi);
+            warningMessage = `Pemesanan Sesi Jam Berjalan: Selesai pukul ${endHourStr} (sisa waktu efektif ~${effMin} menit). Pengambilan kunci maksimal 15 menit sejak pemesanan dibuat.`;
         }
     }
 
@@ -709,11 +886,18 @@ function validateTimeSlotConstraints() {
         }
     }
 
-    // Informational note for 11.00 / 15.00
-    if (!errorMessage && (slot === '11.00' || slot === '15.00')) {
-        warningMessage = slot === '11.00'
-            ? 'Catatan: Pada slot jam 11.00, durasi maksimal hanya 1 jam karena pukul 12.00 - 13.00 adalah jam istirahat.'
-            : 'Catatan: Pada slot jam 15.00, durasi maksimal hanya 1 jam karena ruang diskusi tutup pada pukul 16.00.';
+    // Informational notes
+    if (!errorMessage) {
+        if (slot === '11.00') {
+            warningMessage = 'Catatan: Pada slot jam 11.00, durasi maksimal hanya 1 jam karena pukul 12.00 - 13.00 adalah jam istirahat dan sterilisasi ruangan.';
+        } else if (slot === '15.00') {
+            warningMessage = 'Catatan: Pada slot jam 15.00, durasi maksimal hanya 1 jam karena ruang diskusi tutup pada pukul 16.00.';
+        } else if (slot === '14.00') {
+            warningMessage = 'Catatan: Pada slot jam 14.00, peminjaman Surat Tugas (> 2 jam) tidak tersedia karena ruang diskusi tutup pukul 16.00.';
+        } else if (isST) {
+            const endStr = getBookingEndSlotString(slot, durasi);
+            warningMessage = `Peminjaman Surat Tugas (${durasi} Jam): Selesai dijadwalkan pukul ${endStr}. Pastikan Anda melampirkan berkas Surat Tugas yang sah.`;
+        }
     }
 
     if (notice) {
@@ -781,25 +965,66 @@ function closeModal(modalId) {
     }
 }
 
-function handleDurasiChange() {
-    const durasi = document.getElementById('input-durasi')?.value;
-    const docGroup = document.getElementById('doc-upload-group');
-    if (docGroup) {
-        if (durasi === '3') {
-            docGroup.classList.remove('hidden');
-        } else {
-            docGroup.classList.add('hidden');
-        }
+// Pratinjau Dokumen Surat Tugas
+function viewSuratTugas(bookingId) {
+    const b = getBookings().find(item => item.id === bookingId);
+    if (!b || !b.suratTugas) {
+        alert('Berkas Surat Tugas tidak ditemukan untuk peminjaman ini.');
+        return;
     }
-}
 
-function handleDurasiSelectChange() {
-    handleDurasiChange();
-    validateTimeSlotConstraints();
+    const doc = b.suratTugas;
+    const modal = document.getElementById('modal-doc-preview');
+    const bodyEl = document.getElementById('doc-preview-body');
+    const titleEl = document.getElementById('doc-preview-title');
+    const downloadBtn = document.getElementById('btn-download-doc');
+
+    if (!modal || !bodyEl) {
+        if (doc.fileData) {
+            const win = window.open(doc.fileData);
+            if (!win) alert(`Nama berkas: ${doc.fileName}`);
+        } else {
+            alert(`Surat Tugas: ${doc.fileName}`);
+        }
+        return;
+    }
+
+    if (titleEl) {
+        titleEl.innerHTML = `<i class="fa fa-file-alt" style="color:#0f766e; margin-right:6px;"></i> Berkas ST: ${doc.fileName}`;
+    }
+
+    if (downloadBtn) {
+        downloadBtn.href = doc.fileData || '#';
+        downloadBtn.download = doc.fileName || `Surat_Tugas_${b.id}`;
+        downloadBtn.style.display = doc.fileData ? 'inline-block' : 'none';
+    }
+
+    const sizeKb = Math.round((doc.fileSize || 0) / 1024);
+    let previewHtml = `
+        <div style="margin-bottom:12px; font-size:0.85rem; color:#475569; text-align:left; background:#f1f5f9; padding:10px 12px; border-radius:6px;">
+            <div><strong>Pemohon:</strong> ${b.nama} (${b.nim} - ${b.kelas})</div>
+            <div><strong>Ruangan & Jadwal:</strong> ${b.roomName} | ${b.date}, Jam ${b.slot} (Durasi ${b.durasi} Jam)</div>
+            <div><strong>Nama Berkas:</strong> ${doc.fileName} (${sizeKb} KB)</div>
+        </div>
+    `;
+
+    if (doc.fileData) {
+        if (doc.fileType && doc.fileType.includes('pdf')) {
+            previewHtml += `<iframe src="${doc.fileData}" style="width:100%; height:450px; border:1px solid #cbd5e1; border-radius:6px;" title="Pratinjau PDF Surat Tugas"></iframe>`;
+        } else {
+            previewHtml += `<img src="${doc.fileData}" style="max-width:100%; max-height:450px; object-fit:contain; border-radius:6px; border:1px solid #cbd5e1;" alt="Pratinjau Surat Tugas">`;
+        }
+    } else {
+        previewHtml += `<div style="padding:30px 20px; color:#64748b;">Pratinjau visual tidak tersedia untuk berkas ini.</div>`;
+    }
+
+    bodyEl.innerHTML = previewHtml;
+    modal.classList.remove('hidden');
 }
+window.viewSuratTugas = viewSuratTugas;
 
 /// Submit New Booking Form
-function handleFormSubmit(e) {
+async function handleFormSubmit(e) {
     e.preventDefault();
 
     const roomId = document.getElementById('input-room').value;
@@ -808,19 +1033,66 @@ function handleFormSubmit(e) {
     const filterDate = document.getElementById('filter-date')?.value || getTodayDateString();
 
     const hp = document.getElementById('input-hp').value;
-    const jumlah = parseInt(document.getElementById('input-jumlah').value);
-    const durasi = parseInt(document.getElementById('input-durasi').value);
+    const jumlah = parseInt(document.getElementById('input-jumlah').value, 10);
+    const durasiRaw = document.getElementById('input-durasi').value;
+    const isSuratTugas = (durasiRaw === 'surat_tugas' || durasiRaw === '3');
     const keperluan = document.getElementById('input-keperluan').value;
+
+    let durasi = parseInt(durasiRaw, 10);
+    if (isSuratTugas) {
+        const stJamEl = document.getElementById('input-durasi-jam');
+        durasi = parseInt(stJamEl?.value || '3', 10);
+        if (isNaN(durasi) || durasi < 3) {
+            alert('Peminjaman dengan Surat Tugas harus memiliki durasi minimal 3 jam.');
+            return;
+        }
+    }
 
     if (!room) {
         alert('Ruangan tidak valid.');
         return;
     }
 
-    // Constraint 2: Past Time Slot Check
+    // Constraint: Past Time Slot Check
     if (isSlotInPast(filterDate, slot)) {
         alert(`Pemesanan Ditolak: Jam ${slot} pada tanggal ${filterDate} sudah terlewat. Silakan pilih waktu yang akan datang.`);
         return;
+    }
+
+    // Surat Tugas File Validation (Mandatory for Surat Tugas)
+    const docInput = document.getElementById('input-doc');
+    let suratTugasData = null;
+
+    if (isSuratTugas) {
+        if (!docInput || !docInput.files || docInput.files.length === 0) {
+            alert('Pemesanan Ditolak: Anda wajib melampirkan / mengunggah file berkas Surat Tugas untuk peminjaman jenis Surat Tugas.');
+            if (docInput) {
+                docInput.style.borderColor = '#dc2626';
+                docInput.focus();
+            }
+            return;
+        }
+
+        const file = docInput.files[0];
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Pemesanan Ditolak: Ukuran file Surat Tugas melebihi batas maksimal 5 MB.');
+            return;
+        }
+
+        let fileData = null;
+        try {
+            fileData = await readFileAsDataURL(file);
+        } catch (err) {
+            console.warn('Gagal mengonversi berkas dokumen ke data URL:', err);
+        }
+
+        suratTugasData = {
+            fileName: file.name,
+            fileSize: file.size,
+            fileType: file.type || 'application/octet-stream',
+            fileData: fileData,
+            uploadedAt: new Date().toISOString()
+        };
     }
 
     // Constraint: Minimum 20 minutes remaining threshold for ongoing slot booking
@@ -883,6 +1155,8 @@ function handleFormSubmit(e) {
         date: filterDate,
         slot: slot,
         durasi: durasi,
+        jenisDurasi: isSuratTugas ? 'Surat Tugas' : 'Reguler',
+        suratTugas: suratTugasData,
         jumlah: jumlah,
         keperluan: keperluan,
         status: 'Menunggu Kunci',
@@ -893,9 +1167,17 @@ function handleFormSubmit(e) {
     bookings.push(newBooking);
     saveBookings(bookings);
 
-    alert(`🎉 Pemesanan Berhasil! Silakan ambil kunci di Resepsionis Lt. 1 dengan menyerahkan KTM 5 menit sebelum jam ${slot}.`);
+    const successMsg = isSuratTugas
+        ? `🎉 Pemesanan Berhasil dengan Surat Tugas (${durasi} Jam)!\nBerkas surat tugas telah tersimpan. Silakan ambil kunci di Resepsionis Lt. 1 dengan menyerahkan KTM 5 menit sebelum jam ${slot}.`
+        : `🎉 Pemesanan Berhasil! Silakan ambil kunci di Resepsionis Lt. 1 dengan menyerahkan KTM 5 menit sebelum jam ${slot}.`;
+
+    alert(successMsg);
 
     closeModal('booking-modal');
+    const bookingForm = document.getElementById('form-booking');
+    if (bookingForm) bookingForm.reset();
+    handleDurasiChange();
+
     renderMatrixGrid();
     renderMyBookings();
 }
@@ -962,11 +1244,16 @@ function renderMyBookings() {
                          </button>`;
         }
 
+        let durasiCol = `${b.durasi} Jam`;
+        if (b.suratTugas) {
+            durasiCol += `<br><button type="button" class="badge" style="background:#0f766e; color:#fff; border:none; padding:3px 8px; border-radius:4px; cursor:pointer; font-size:0.72rem; margin-top:4px;" onclick="viewSuratTugas('${b.id}')" title="Klik untuk melihat berkas Surat Tugas"><i class="fa fa-file-alt"></i> Berkas ST</button>`;
+        }
+
         html += `<tr>
                     <td><strong>${b.id}</strong></td>
                     <td><strong>${b.roomName}</strong></td>
                     <td>${b.date}<br><small style="color:#6c757d;">Jam ${b.slot}</small></td>
-                    <td>${b.durasi} Jam</td>
+                    <td>${durasiCol}</td>
                     <td>${b.keperluan || '-'}</td>
                     <td><span class="badge ${badgeClass}">${b.status}</span>${statusSubtext}</td>
                     <td style="text-align:center;">${cancelBtn}</td>
@@ -1117,11 +1404,16 @@ function renderAdminTable() {
             `;
         }
 
+        let roomCellHtml = `<strong>${b.roomName}</strong><br><small style="color:#6c757d;">Tgl: ${b.date} | Jam ${b.slot} (${b.durasi} Jam)</small>`;
+        if (b.suratTugas) {
+            roomCellHtml += `<br><button type="button" class="btn btn-outline-info btn-sm" style="padding:2px 8px; font-size:0.75rem; margin-top:4px;" onclick="viewSuratTugas('${b.id}')" title="Lihat Berkas Surat Tugas / Nota Dinas"><i class="fa fa-file-alt"></i> Berkas ST</button>`;
+        }
+
         html += `<tr>
                     <td><strong>${b.id}</strong></td>
                     <td><strong>${b.nama}</strong><br><small style="color:#6c757d;">NIM: ${b.nim} | HP: ${b.hp}</small></td>
                     <td>${b.prodi}<br><small style="color:#6c757d;">Kelas: ${b.kelas}</small></td>
-                    <td><strong>${b.roomName}</strong><br><small style="color:#6c757d;">Tgl: ${b.date} | Jam ${b.slot} (${b.durasi} Jam)</small></td>
+                    <td>${roomCellHtml}</td>
                     <td>${statusBadge}</td>
                     <td style="text-align:center;">${actionBtns}</td>
                  </tr>`;

@@ -151,6 +151,25 @@
         </main>
     </div>
 
+    <!-- Modal Pratinjau Surat Tugas untuk Petugas Resepsionis -->
+    <div id="modal-doc-preview" class="modal-backdrop hidden">
+        <div class="modal-content" style="max-width: 650px; border-top: 4px solid #0f766e;">
+            <div class="modal-header" style="background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
+                <h5 style="margin:0; font-size:1.05rem; font-weight:700; color:#0f2b48;" id="doc-preview-title">
+                    <i class="fa fa-file-alt" style="color:#0f766e; margin-right:6px;"></i> Berkas Surat Tugas / Nota Dinas
+                </h5>
+                <button type="button" class="modal-close" onclick="closeModal('modal-doc-preview')">&times;</button>
+            </div>
+            <div class="modal-body" id="doc-preview-body" style="padding:16px; text-align:center; min-height:220px; max-height:75vh; overflow-y:auto;">
+                <!-- Konten berkas ditampilkan dinamis oleh JavaScript -->
+            </div>
+            <div class="modal-footer" style="padding:12px 16px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:10px;">
+                <a id="btn-download-doc" href="#" download class="btn btn-outline-secondary btn-sm" style="font-weight:600;"><i class="fa fa-download"></i> Unduh Berkas</a>
+                <button type="button" class="btn btn-primary btn-sm" onclick="closeModal('modal-doc-preview')">Tutup</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Socket.IO and App Logic -->
     <script src="/socket.io/socket.io.js"></script>
     <script src="/app.js"></script>
