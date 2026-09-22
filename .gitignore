@@ -4,3 +4,6 @@ constraint.md
 .agents/*
 AGENTS.md
 node_modules/
+flowchart-academic.html
+flowchart-pinjam-rudis.png
+generate_flowchart.py

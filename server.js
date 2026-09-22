@@ -271,6 +271,7 @@ app.post('/api/notifications', (req, res) => {
 
 // Static files
 app.use('/adminrudis', express.static(path.join(__dirname, 'adminrudis')));
+app.use('/sounds', express.static(path.join(__dirname, 'sounds')));
 app.use(express.static(path.join(__dirname)));
 
 // Root route: open Student Login

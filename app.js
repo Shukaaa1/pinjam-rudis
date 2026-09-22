@@ -361,7 +361,7 @@ if (typeof io !== 'undefined') {
         const isForMe = (notif.targetNim === 'all' || notif.targetNim === CURRENT_USER.nim);
         if (!isForMe) return;
 
-        playChimeSound('warning');
+        playChimeSound('notification');
         sendSystemNotification(notif.title, notif.message);
 
         const modal = document.getElementById('modal-admin-notification');
@@ -1891,6 +1891,33 @@ function renderAdminRoomGrid() {
 let audioCtx = null;
 let soundEnabled = true;
 
+// Daftar kandidat file suara kustom di folder /sounds/
+// Format yang didukung: MP3, WAV, OGG.
+// Pengguna cukup meletakkan file audio ke folder sounds/ dengan nama berikut:
+const CUSTOM_SOUND_MAP = {
+    notification: [
+        '/sounds/notification.mp3',
+        '/sounds/notification.wav',
+        '/sounds/notification.ogg',
+        '/sounds/warning.mp3'
+    ],
+    warning: [
+        '/sounds/warning.mp3',
+        '/sounds/warning.wav',
+        '/sounds/warning.ogg',
+        '/sounds/notification.mp3'
+    ],
+    urgent: [
+        '/sounds/urgent.mp3',
+        '/sounds/urgent.wav',
+        '/sounds/urgent.ogg',
+        '/sounds/alarm.mp3'
+    ]
+};
+
+// Cache status ketersediaan file suara agar tidak berulang kali memicu 404 saat file belum diunggah
+const soundAvailabilityCache = {};
+
 function getAudioContext() {
     if (!audioCtx) {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -1904,16 +1931,52 @@ function getAudioContext() {
     return audioCtx;
 }
 
-// Play gentle synthesized chime using Web Audio API
-function playChimeSound(type = 'warning') {
-    if (!soundEnabled) return;
+// Buka kunci AudioContext dan Audio element saat interaksi pertama pengguna
+function initAudioAutoplayUnlock() {
+    const unlock = () => {
+        getAudioContext();
+        window.removeEventListener('click', unlock);
+        window.removeEventListener('keydown', unlock);
+        window.removeEventListener('touchstart', unlock);
+    };
+    window.addEventListener('click', unlock, { once: true });
+    window.addEventListener('keydown', unlock, { once: true });
+    window.addEventListener('touchstart', unlock, { once: true });
+}
+initAudioAutoplayUnlock();
+
+// Synthesizer Web Audio API bawaan (fallback otomatis jika file audio kustom belum diunggah)
+function playSynthesizedChime(type = 'warning') {
     try {
         const ctx = getAudioContext();
         if (!ctx) return;
 
         const now = ctx.currentTime;
 
-        if (type === 'warning') {
+        if (type === 'notification') {
+            // Melodi bel dua nada untuk notifikasi masuk (C5: 523.25 Hz, G5: 783.99 Hz)
+            const osc1 = ctx.createOscillator();
+            const gain1 = ctx.createGain();
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(523.25, now);
+            gain1.gain.setValueAtTime(0.18, now);
+            gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+            osc1.connect(gain1);
+            gain1.connect(ctx.destination);
+            osc1.start(now);
+            osc1.stop(now + 0.45);
+
+            const osc2 = ctx.createOscillator();
+            const gain2 = ctx.createGain();
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(783.99, now + 0.18);
+            gain2.gain.setValueAtTime(0.20, now + 0.18);
+            gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.75);
+            osc2.connect(gain2);
+            gain2.connect(ctx.destination);
+            osc2.start(now + 0.18);
+            osc2.stop(now + 0.75);
+        } else if (type === 'warning') {
             // Melodic two-tone chime for 5-minute reminder (F5: 698.46 Hz, A5: 880 Hz)
             const osc1 = ctx.createOscillator();
             const gain1 = ctx.createGain();
@@ -1953,9 +2016,118 @@ function playChimeSound(type = 'warning') {
             });
         }
     } catch (e) {
-        console.warn('Audio playback error:', e);
+        console.warn('Synthesized chime error:', e);
     }
 }
+
+// Memutar file audio kustom dengan fallback berurutan dan fallback synthesizer
+function playCustomAudio(candidates, onFallback) {
+    if (!candidates || !candidates.length) {
+        if (typeof onFallback === 'function') onFallback();
+        return;
+    }
+
+    // Jika ada kandidat yang sudah terverifikasi sebelumnya, langsung putar
+    const verifiedUrl = candidates.find(u => soundAvailabilityCache[u] === true);
+    if (verifiedUrl) {
+        const audio = new Audio(verifiedUrl);
+        audio.volume = 0.85;
+        const p = audio.play();
+        if (p !== undefined) {
+            p.catch(err => {
+                console.warn('Gagal memutar audio terverifikasi:', err);
+                if (typeof onFallback === 'function') onFallback();
+            });
+        }
+        return;
+    }
+
+    // Periksa kandidat yang belum pernah gagal (belum diuji)
+    const pendingCandidates = candidates.filter(u => soundAvailabilityCache[u] !== false);
+    if (!pendingCandidates.length) {
+        // Semua kandidat sudah pernah dicoba dan tidak ada, langsung fallback tanpa delay
+        if (typeof onFallback === 'function') onFallback();
+        return;
+    }
+
+    let fallbackInvoked = false;
+    const triggerFallbackOnce = () => {
+        if (!fallbackInvoked) {
+            fallbackInvoked = true;
+            if (typeof onFallback === 'function') onFallback();
+        }
+    };
+
+    const tryCandidate = (index) => {
+        if (index >= pendingCandidates.length) {
+            triggerFallbackOnce();
+            return;
+        }
+
+        const url = pendingCandidates[index];
+        const audio = new Audio(url);
+        audio.volume = 0.85;
+
+        let handled = false;
+        const markFailedAndNext = () => {
+            if (handled) return;
+            handled = true;
+            soundAvailabilityCache[url] = false;
+            tryCandidate(index + 1);
+        };
+
+        audio.onerror = markFailedAndNext;
+
+        const p = audio.play();
+        if (p !== undefined) {
+            p.then(() => {
+                if (!handled) {
+                    handled = true;
+                    soundAvailabilityCache[url] = true;
+                }
+            }).catch(() => {
+                markFailedAndNext();
+            });
+        }
+    };
+
+    tryCandidate(0);
+}
+
+// Fungsi utama pemutar nada bel notifikasi dan alarm
+function playChimeSound(type = 'warning') {
+    if (!soundEnabled) return;
+    try {
+        getAudioContext();
+
+        const candidates = CUSTOM_SOUND_MAP[type] || CUSTOM_SOUND_MAP['warning'] || [];
+        if (!candidates.length) {
+            playSynthesizedChime(type);
+            return;
+        }
+
+        playCustomAudio(candidates, () => {
+            playSynthesizedChime(type);
+        });
+    } catch (e) {
+        console.warn('Audio playback error:', e);
+        playSynthesizedChime(type);
+    }
+}
+
+// Expose helper pengujian audio di console browser
+window.playChimeSound = playChimeSound;
+window.playSynthesizedChime = playSynthesizedChime;
+window.testNotificationSound = function(type = 'notification') {
+    getAudioContext();
+    playChimeSound(type);
+};
+window.resetSoundCache = function() {
+    for (const key in soundAvailabilityCache) {
+        delete soundAvailabilityCache[key];
+    }
+    console.log('Cache sound notifikasi di-reset. File audio baru akan dicek kembali.');
+};
 
 function toggleAudioChime() {
     soundEnabled = !soundEnabled;
