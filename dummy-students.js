@@ -1,20 +1,9 @@
 /**
  * Data Akun Mahasiswa Civitas PKN STAN untuk Prototype
- * Total: 23 Mahasiswa Dummy + Akun Utama
+ * Total: 23 Mahasiswa Dummy
  */
 
 const DUMMY_STUDENTS = [
-    {
-        id: 'mhs-00',
-        nim: '4131230098',
-        username: '4131230098',
-        password: 'password',
-        nama: 'VERI GALIH SETIYO AJI',
-        email: 'galih_4131230098@pknstan.ac.id',
-        prodi: 'Sarjana Terapan Akuntansi Sektor Publik',
-        kelas: '6 Sisfo 5',
-        hp: '081234567890'
-    },
     {
         id: 'mhs-01',
         nim: '2301100101',

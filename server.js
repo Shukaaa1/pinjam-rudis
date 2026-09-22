@@ -111,9 +111,37 @@ function writeBookings(data) {
     }
 }
 
+// State Simulasi Waktu Sistem untuk Presentasi
+let systemTimeState = {
+    isSimulated: false,
+    simulatedTime: null,
+    setAt: null
+};
+
+function getSystemNow() {
+    if (systemTimeState.isSimulated && systemTimeState.simulatedTime && systemTimeState.setAt) {
+        const elapsed = Date.now() - systemTimeState.setAt;
+        return new Date(new Date(systemTimeState.simulatedTime).getTime() + elapsed);
+    }
+    return new Date();
+}
+
 function getTodayDateString() {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
+    const today = getSystemNow();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+function getSystemTimePayload() {
+    const now = getSystemNow();
+    return {
+        isSimulated: systemTimeState.isSimulated,
+        simulatedTime: systemTimeState.simulatedTime,
+        currentTime: now.toISOString(),
+        currentDate: getTodayDateString()
+    };
 }
 
 function getSlotDateTime(dateStr, slotStr) {
@@ -136,7 +164,7 @@ function checkAutoExpire() {
     const bookings = readBookings();
     if (!Array.isArray(bookings) || bookings.length === 0) return false;
 
-    const now = new Date();
+    const now = getSystemNow();
     const GRACE_PERIOD_MS = 15 * 60 * 1000;
     let changed = false;
 
@@ -167,6 +195,33 @@ function checkAutoExpire() {
 
 // Background auto-expire runner every 10 seconds
 setInterval(checkAutoExpire, 10000);
+
+// API Endpoints for System Time Simulation
+app.get('/api/time', (req, res) => {
+    res.json(getSystemTimePayload());
+});
+
+app.post('/api/time', (req, res) => {
+    const { isSimulated, simulatedTime } = req.body;
+    if (isSimulated && simulatedTime) {
+        systemTimeState = {
+            isSimulated: true,
+            simulatedTime: new Date(simulatedTime).toISOString(),
+            setAt: Date.now()
+        };
+    } else {
+        systemTimeState = {
+            isSimulated: false,
+            simulatedTime: null,
+            setAt: null
+        };
+    }
+    checkAutoExpire();
+    const payload = getSystemTimePayload();
+    io.emit('time:sync', payload);
+    console.log(`[System-Time] Mode waktu diperbarui:`, payload);
+    return res.json({ success: true, ...payload });
+});
 
 // API Endpoints
 app.get('/api/bookings', (req, res) => {
@@ -205,8 +260,30 @@ app.get('/portal', (req, res) => {
 io.on('connection', (socket) => {
     console.log(`[Socket Connected] Klien terhubung: ${socket.id}`);
 
-    // Send latest data on connect
+    // Send latest data and system time on connect
     socket.emit('bookings:sync', readBookings());
+    socket.emit('time:sync', getSystemTimePayload());
+
+    // Listen for system time simulation updates
+    socket.on('setSystemTime', (data) => {
+        if (data && data.isSimulated && data.simulatedTime) {
+            systemTimeState = {
+                isSimulated: true,
+                simulatedTime: new Date(data.simulatedTime).toISOString(),
+                setAt: Date.now()
+            };
+        } else {
+            systemTimeState = {
+                isSimulated: false,
+                simulatedTime: null,
+                setAt: null
+            };
+        }
+        checkAutoExpire();
+        const payload = getSystemTimePayload();
+        io.emit('time:sync', payload);
+        console.log(`[Socket] Waktu sistem diperbarui via socket:`, payload);
+    });
 
     // Listen for client data updates
     socket.on('updateBookings', (newBookings) => {

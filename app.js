@@ -18,6 +18,49 @@ const MASTER_ROOMS = [
 
 const TIME_SLOTS = ['08.00', '09.00', '10.00', '11.00', '13.00', '14.00', '15.00'];
 
+// ==========================================
+// SYSTEM TIME & PRESENTATION SIMULATION STATE
+// ==========================================
+let SYSTEM_TIME = {
+    isSimulated: false,
+    simulatedTime: null,
+    setAt: null
+};
+
+// Returns current Date object, respecting simulation offset if active
+function getSystemNow() {
+    if (SYSTEM_TIME.isSimulated && SYSTEM_TIME.simulatedTime && SYSTEM_TIME.setAt) {
+        const elapsed = Date.now() - SYSTEM_TIME.setAt;
+        return new Date(new Date(SYSTEM_TIME.simulatedTime).getTime() + elapsed);
+    }
+    return new Date();
+}
+
+// Helper Date string YYYY-MM-DD in local time
+function getTodayDateString() {
+    const now = getSystemNow();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+// Helper to parse date (YYYY-MM-DD) and slot (HH.MM) into Date object
+function getSlotDateTime(dateStr, slotStr) {
+    if (!dateStr || !slotStr) return null;
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return null;
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    
+    const timeParts = slotStr.replace('.', ':').split(':');
+    const hour = parseInt(timeParts[0], 10);
+    const minute = parseInt(timeParts[1] || '0', 10);
+    
+    return new Date(year, month, day, hour, minute, 0, 0);
+}
+
 // User Logged In Mock Data (Dynamically updated from login session)
 let CURRENT_USER = {
     nama: 'VERI GALIH SETIYO AJI',
@@ -97,28 +140,6 @@ const SEED_BOOKINGS = [
     }
 ];
 
-// Helper Date string YYYY-MM-DD
-function getTodayDateString() {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
-}
-
-// Helper to parse date (YYYY-MM-DD) and slot (HH.MM) into Date object
-function getSlotDateTime(dateStr, slotStr) {
-    if (!dateStr || !slotStr) return null;
-    const parts = dateStr.split('-');
-    if (parts.length !== 3) return null;
-    const year = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1;
-    const day = parseInt(parts[2], 10);
-    
-    const timeParts = slotStr.replace('.', ':').split(':');
-    const hour = parseInt(timeParts[0], 10);
-    const minute = parseInt(timeParts[1] || '0', 10);
-    
-    return new Date(year, month, day, hour, minute, 0, 0);
-}
-
 const MIN_REMAINING_MINUTES = 20;
 
 // Helper to calculate end slot time string
@@ -165,7 +186,7 @@ function getSlotRemainingMinutes(dateStr, slotStr, durasiHours = 1) {
 
     const endDt = getSlotEndDateTime(dateStr, slotStr, durasiHours);
     if (!endDt) return 0;
-    const now = new Date();
+    const now = getSystemNow();
     return Math.floor((endDt.getTime() - now.getTime()) / 60000);
 }
 
@@ -177,7 +198,7 @@ function isSlotInPast(dateStr, slotStr) {
     if (dateStr < todayStr) return true;
     if (dateStr > todayStr) return false;
 
-    const now = new Date();
+    const now = getSystemNow();
     const slotEnd1h = getSlotEndDateTime(dateStr, slotStr, 1);
     if (!slotEnd1h) return false;
 
@@ -212,7 +233,7 @@ function checkAutoExpireBookings(notify = false) {
     
     if (!Array.isArray(bookings) || bookings.length === 0) return false;
 
-    const now = new Date();
+    const now = getSystemNow();
     const GRACE_PERIOD_MS = 15 * 60 * 1000; // Toleransi 15 menit
     let changed = false;
     let expiredCount = 0;
@@ -276,7 +297,7 @@ function getBookings() {
     }
 
     // Auto-check inline to ensure returned bookings always reflect 15-minute tolerance
-    const now = new Date();
+    const now = getSystemNow();
     const GRACE_PERIOD_MS = 15 * 60 * 1000;
     let changed = false;
     bookings.forEach(b => {
@@ -322,6 +343,17 @@ if (typeof io !== 'undefined') {
             triggerAllUIRenders();
         }
     });
+
+    // Realtime System Time Sync from Server
+    socket.on('time:sync', (timeData) => {
+        if (timeData) {
+            SYSTEM_TIME.isSimulated = Boolean(timeData.isSimulated);
+            SYSTEM_TIME.simulatedTime = timeData.simulatedTime;
+            SYSTEM_TIME.setAt = Date.now();
+            updateSimulationUIState();
+            triggerAllUIRenders();
+        }
+    });
 }
 
 function updateRealtimeStatus(connected) {
@@ -347,6 +379,7 @@ function triggerAllUIRenders() {
     if (typeof renderAdminTable === 'function') renderAdminTable();
     if (typeof renderAdminRoomGrid === 'function') renderAdminRoomGrid();
     if (typeof validateTimeSlotConstraints === 'function') validateTimeSlotConstraints();
+    if (typeof updateSimulationUIState === 'function') updateSimulationUIState();
 }
 
 // Fetch fresh bookings from server
@@ -362,6 +395,23 @@ async function fetchBookingsFromServer() {
         }
     } catch (err) {
         console.log('[Offline Fallback] Server belum aktif, menggunakan data browser lokal.');
+    }
+}
+
+// Fetch fresh system time from server
+async function fetchSystemTimeFromServer() {
+    try {
+        const res = await fetch('/api/time');
+        if (res.ok) {
+            const timeData = await res.json();
+            SYSTEM_TIME.isSimulated = Boolean(timeData.isSimulated);
+            SYSTEM_TIME.simulatedTime = timeData.simulatedTime;
+            SYSTEM_TIME.setAt = Date.now();
+            updateSimulationUIState();
+            triggerAllUIRenders();
+        }
+    } catch (err) {
+        // Fallback local
     }
 }
 
@@ -401,7 +451,7 @@ function saveBookings(bookings) {
 // Update Slot Dropdown Options based on selected date (disable past slots)
 function updateSlotDropdownOptions(selectedDate) {
     const slotSelect = document.getElementById('input-slot');
-    if (!slotSelect) return;
+    if (!slotSelect || !slotSelect.options) return;
 
     const dateStr = selectedDate || document.getElementById('filter-date')?.value || getTodayDateString();
     let firstAvailableValue = null;
@@ -415,7 +465,7 @@ function updateSlotDropdownOptions(selectedDate) {
         } else {
             opt.disabled = false;
             const startDt = getSlotDateTime(dateStr, slotVal);
-            const now = new Date();
+            const now = getSystemNow();
             const isOngoing = (dateStr === getTodayDateString() && startDt && now >= startDt);
             opt.textContent = isOngoing ? `${slotVal} (Jam Berjalan)` : slotVal;
             if (!firstAvailableValue) {
@@ -438,12 +488,236 @@ function handleFilterDateChange() {
     validateTimeSlotConstraints();
 }
 
+// ==========================================
+// TIME SIMULATION CONTROLLERS & UI UPDATERS
+// ==========================================
+
+function updateSimulationUIState() {
+    const now = getSystemNow();
+    const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/:/g, '.') + ' WIB';
+    const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const dateStr = now.toLocaleDateString('id-ID', dateOptions);
+
+    // Header Clock Widget
+    const headerTimeEl = document.getElementById('header-clock-time');
+    const headerBadgeEl = document.getElementById('header-clock-mode-badge');
+    if (headerTimeEl) headerTimeEl.textContent = timeStr;
+    if (headerBadgeEl) {
+        if (SYSTEM_TIME.isSimulated) {
+            headerBadgeEl.textContent = 'Simulasi';
+            headerBadgeEl.style.background = '#f59e0b';
+            headerBadgeEl.style.color = '#0f172a';
+        } else {
+            headerBadgeEl.textContent = 'Realtime';
+            headerBadgeEl.style.background = '#10b981';
+            headerBadgeEl.style.color = '#ffffff';
+        }
+    }
+
+    // Sidebar badge
+    const sidebarSimBadge = document.getElementById('sidebar-sim-badge');
+    if (sidebarSimBadge) {
+        sidebarSimBadge.style.display = SYSTEM_TIME.isSimulated ? 'inline-block' : 'none';
+    }
+
+    // Active Simulation Banner
+    const simBanner = document.getElementById('simulation-active-banner');
+    const bannerSimTime = document.getElementById('banner-sim-time');
+    if (simBanner) {
+        if (SYSTEM_TIME.isSimulated) {
+            simBanner.classList.remove('hidden');
+            if (bannerSimTime) bannerSimTime.textContent = `${dateStr} pukul ${timeStr}`;
+        } else {
+            simBanner.classList.add('hidden');
+        }
+    }
+
+    // Simulation Tab Clock View
+    const simClock = document.getElementById('sim-display-clock');
+    const simDate = document.getElementById('sim-display-date');
+    const simBadge = document.getElementById('sim-status-badge');
+    if (simClock) {
+        simClock.textContent = timeStr;
+        if (SYSTEM_TIME.isSimulated) {
+            simClock.classList.add('simulated');
+        } else {
+            simClock.classList.remove('simulated');
+        }
+    }
+    if (simDate) simDate.textContent = dateStr;
+    if (simBadge) {
+        if (SYSTEM_TIME.isSimulated) {
+            simBadge.innerHTML = '<i class="fa fa-flask"></i> Mode Simulasi Presentasi Aktif';
+            simBadge.style.background = '#f59e0b';
+            simBadge.style.color = '#0f172a';
+        } else {
+            simBadge.innerHTML = '<i class="fa fa-check-circle"></i> Mode Waktu Nyata (Realtime)';
+            simBadge.style.background = '#10b981';
+            simBadge.style.color = '#ffffff';
+        }
+    }
+
+    // Pre-populate manual date and time input if empty
+    const dateInput = document.getElementById('sim-input-date');
+    const timeInput = document.getElementById('sim-input-time');
+    if (dateInput && document.activeElement !== dateInput && !dateInput.value) {
+        dateInput.value = getTodayDateString();
+    }
+    if (timeInput && document.activeElement !== timeInput && !timeInput.value) {
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        timeInput.value = `${hh}:${mm}`;
+    }
+}
+window.updateSimulationUIState = updateSimulationUIState;
+
+async function setSimulationTime(dateTimeStr) {
+    if (!dateTimeStr) return;
+    const targetDt = new Date(dateTimeStr);
+    if (isNaN(targetDt.getTime())) {
+        alert('Format tanggal/waktu simulasi tidak valid.');
+        return;
+    }
+
+    const payload = {
+        isSimulated: true,
+        simulatedTime: targetDt.toISOString()
+    };
+
+    SYSTEM_TIME.isSimulated = true;
+    SYSTEM_TIME.simulatedTime = payload.simulatedTime;
+    SYSTEM_TIME.setAt = Date.now();
+
+    if (socket && socket.connected) {
+        socket.emit('setSystemTime', payload);
+    }
+    fetch('/api/time', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    }).catch(() => {});
+
+    checkAutoExpireBookings(false);
+    updateSimulationUIState();
+    triggerAllUIRenders();
+}
+window.setSimulationTime = setSimulationTime;
+
+async function advanceSimulationTime(minutes) {
+    const current = getSystemNow();
+    const newDt = new Date(current.getTime() + minutes * 60 * 1000);
+    await setSimulationTime(newDt.toISOString());
+}
+window.advanceSimulationTime = advanceSimulationTime;
+
+async function resetSimulationTime() {
+    const payload = {
+        isSimulated: false,
+        simulatedTime: null
+    };
+
+    SYSTEM_TIME.isSimulated = false;
+    SYSTEM_TIME.simulatedTime = null;
+    SYSTEM_TIME.setAt = null;
+
+    if (socket && socket.connected) {
+        socket.emit('setSystemTime', payload);
+    }
+    fetch('/api/time', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    }).catch(() => {});
+
+    // Reset date picker to today
+    const simDateInput = document.getElementById('sim-input-date');
+    const simTimeInput = document.getElementById('sim-input-time');
+    const now = new Date();
+    if (simDateInput) simDateInput.value = getTodayDateString();
+    if (simTimeInput) {
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        simTimeInput.value = `${hh}:${mm}`;
+    }
+
+    checkAutoExpireBookings(false);
+    updateSimulationUIState();
+    triggerAllUIRenders();
+}
+window.resetSimulationTime = resetSimulationTime;
+
+function applyPresetTime(timeSlotStr) {
+    // timeSlotStr is HH:mm (e.g. "08:50")
+    const dateStr = document.getElementById('sim-input-date')?.value || getTodayDateString();
+    const timeParts = timeSlotStr.replace('.', ':').split(':');
+    const hh = parseInt(timeParts[0], 10);
+    const mm = parseInt(timeParts[1] || '0', 10);
+
+    const parts = dateStr.split('-');
+    const targetDt = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10), hh, mm, 0, 0);
+    setSimulationTime(targetDt.toISOString());
+}
+window.applyPresetTime = applyPresetTime;
+
+function handleCustomSimTimeSubmit(e) {
+    e.preventDefault();
+    const dateVal = document.getElementById('sim-input-date')?.value;
+    const timeVal = document.getElementById('sim-input-time')?.value;
+    if (!dateVal || !timeVal) {
+        alert('Harap pilih tanggal dan jam terlebih dahulu.');
+        return;
+    }
+    const [hh, mm] = timeVal.split(':').map(Number);
+    const parts = dateVal.split('-').map(Number);
+    const targetDt = new Date(parts[0], parts[1] - 1, parts[2], hh, mm, 0, 0);
+    setSimulationTime(targetDt.toISOString());
+}
+window.handleCustomSimTimeSubmit = handleCustomSimTimeSubmit;
+
+// Sidebar & Tab Switchers
+function toggleAdminSidebar() {
+    const sidebar = document.getElementById('admin-sidebar');
+    const backdrop = document.getElementById('admin-sidebar-backdrop');
+    if (sidebar) sidebar.classList.toggle('open');
+    if (backdrop) backdrop.classList.toggle('active');
+}
+window.toggleAdminSidebar = toggleAdminSidebar;
+
+function switchAdminTab(tabName) {
+    const tabDashboard = document.getElementById('tab-admin-dashboard');
+    const tabSimulasi = document.getElementById('tab-admin-simulasi');
+    const navDashboard = document.getElementById('nav-item-dashboard');
+    const navSimulasi = document.getElementById('nav-item-simulasi');
+
+    if (tabName === 'simulasi') {
+        if (tabDashboard) tabDashboard.classList.add('hidden');
+        if (tabSimulasi) tabSimulasi.classList.remove('hidden');
+        if (navDashboard) navDashboard.classList.remove('active');
+        if (navSimulasi) navSimulasi.classList.add('active');
+    } else {
+        if (tabDashboard) tabDashboard.classList.remove('hidden');
+        if (tabSimulasi) tabSimulasi.classList.add('hidden');
+        if (navDashboard) navDashboard.classList.add('active');
+        if (navSimulasi) navSimulasi.classList.remove('active');
+        renderAdminTable();
+        renderAdminRoomGrid();
+    }
+
+    // Close sidebar on click
+    const sidebar = document.getElementById('admin-sidebar');
+    const backdrop = document.getElementById('admin-sidebar-backdrop');
+    if (sidebar) sidebar.classList.remove('open');
+    if (backdrop) backdrop.classList.remove('active');
+}
+window.switchAdminTab = switchAdminTab;
+
 // App Initialization
 document.addEventListener('DOMContentLoaded', () => {
     initCurrentUser();
 
-    // Fetch latest bookings from server immediately
+    // Fetch latest bookings & system time from server immediately
     fetchBookingsFromServer();
+    fetchSystemTimeFromServer();
 
     // Run initial auto-expire check
     checkAutoExpireBookings(false);
@@ -462,10 +736,12 @@ document.addEventListener('DOMContentLoaded', () => {
     renderMyBookings();
     validateTimeSlotConstraints();
     updateActiveSessionBanner();
+    updateSimulationUIState();
 
-    // 1-second interval for active session live countdown
+    // 1-second interval for clock ticking and countdowns
     setInterval(() => {
         updateActiveSessionBanner();
+        updateSimulationUIState();
     }, 1000);
 
     // Periodic auto-expiry check & slot refresh every 10 seconds
@@ -550,7 +826,7 @@ function renderMatrixGrid() {
             } else {
                 const isSelected = (room.id === selectedRoomId && slot === selectedSlot);
                 const activeClass = isSelected ? 'gantt-available-cell-selected' : '';
-                const now = new Date();
+                const now = getSystemNow();
                 const startDt = getSlotDateTime(filterDate, slot);
                 const slotEnd1h = getSlotEndDateTime(filterDate, slot, 1);
                 const isOngoing = (filterDate === getTodayDateString() && startDt && now >= startDt && now < slotEnd1h);
@@ -829,7 +1105,7 @@ function validateTimeSlotConstraints() {
     // Ongoing Slot Rule: Minimum 20 minutes remaining threshold
     const isToday = (filterDate === getTodayDateString());
     const slotStartDt = getSlotDateTime(filterDate, slot);
-    const now = new Date();
+    const now = getSystemNow();
     const isOngoing = isToday && slotStartDt && (now >= slotStartDt) && (now < getSlotEndDateTime(filterDate, slot, 1));
 
     if (!errorMessage && isOngoing) {
@@ -857,18 +1133,20 @@ function validateTimeSlotConstraints() {
         }
     }
 
-    // Constraint 1: Mahasiswa tidak bisa meminjam lebih dari 1 ruangan di waktu yang sama
+    // Constraint: Satu orang tidak boleh memesan 2 ruangan di hari yang sama sebelum pemesanan sebelumnya selesai
     if (!errorMessage) {
         const bookings = getBookings();
-        const studentConflict = bookings.find(b =>
+        const activeBookingOnSameDay = bookings.find(b =>
             b.nim === CURRENT_USER.nim &&
             b.date === filterDate &&
-            ['Menunggu Kunci', 'Sedang Digunakan'].includes(b.status) &&
-            TIME_SLOTS.some(s => isSlotOccupied(b.slot, b.durasi, s) && isSlotOccupied(slot, durasi, s))
+            ['Menunggu Kunci', 'Sedang Digunakan'].includes(b.status)
         );
 
-        if (studentConflict) {
-            errorMessage = `Anda sudah memiliki peminjaman aktif di ${studentConflict.roomName} pada jam ${studentConflict.slot} (${studentConflict.durasi} Jam). Setiap mahasiswa tidak dapat meminjam lebih dari 1 ruangan di waktu bersamaan.`;
+        if (activeBookingOnSameDay) {
+            const statusLabel = activeBookingOnSameDay.status === 'Menunggu Kunci'
+                ? 'Menunggu Serah Terima Kunci'
+                : 'Sedang Digunakan (Kunci Belum Kembali)';
+            errorMessage = `Anda masih memiliki pemesanan aktif di ${activeBookingOnSameDay.roomName} pada tanggal ini (Jam ${activeBookingOnSameDay.slot}, Status: ${statusLabel}). Sesuai ketentuan, satu mahasiswa tidak boleh memesan ruangan lain di hari yang sama sebelum pemesanan sebelumnya selesai (kunci dikembalikan dan sesi diselesaikan oleh petugas).`;
         }
     }
 
@@ -1099,7 +1377,7 @@ async function handleFormSubmit(e) {
     if (filterDate === getTodayDateString()) {
         const remMin = getSlotRemainingMinutes(filterDate, slot, durasi);
         const slotStartDt = getSlotDateTime(filterDate, slot);
-        const now = new Date();
+        const now = getSystemNow();
         if (slotStartDt && now >= slotStartDt && remMin < MIN_REMAINING_MINUTES) {
             alert(`Pemesanan Ditolak: Sisa waktu sesi hanya tersisa ${remMin} menit (< 20 menit). Sesuai aturan, pemesanan sesi jam berjalan membutuhkan minimal 20 menit sisa waktu efektif. Silakan pilih durasi 2 jam (jika tersedia) atau pilih slot jam berikutnya.`);
             return;
@@ -1117,16 +1395,21 @@ async function handleFormSubmit(e) {
 
     const bookings = getBookings();
 
-    // Constraint 1: Mahasiswa tidak bisa meminjam lebih dari 1 ruangan di waktu yang sama
-    const studentConflict = bookings.find(b =>
+    // Constraint: Satu orang tidak boleh memesan 2 ruangan di hari yang sama sebelum pemesanan sebelumnya selesai
+    const activeBookingOnSameDay = bookings.find(b =>
         b.nim === CURRENT_USER.nim &&
         b.date === filterDate &&
-        ['Menunggu Kunci', 'Sedang Digunakan'].includes(b.status) &&
-        TIME_SLOTS.some(s => isSlotOccupied(b.slot, b.durasi, s) && isSlotOccupied(slot, durasi, s))
+        ['Menunggu Kunci', 'Sedang Digunakan'].includes(b.status)
     );
 
-    if (studentConflict) {
-        alert(`Pemesanan Ditolak:\nAnda sudah memiliki peminjaman aktif untuk ${studentConflict.roomName} pada jam ${studentConflict.slot} (Durasi ${studentConflict.durasi} Jam).\n\nSesuai aturan, setiap mahasiswa tidak diperbolehkan meminjam lebih dari 1 ruangan pada waktu yang bersamaan.`);
+    if (activeBookingOnSameDay) {
+        const statusLabel = activeBookingOnSameDay.status === 'Menunggu Kunci'
+            ? 'Menunggu Serah Terima Kunci'
+            : 'Sedang Digunakan (Kunci Belum Kembali)';
+        alert(`Pemesanan Ditolak:\n\n` +
+              `Anda masih memiliki pemesanan aktif di ${activeBookingOnSameDay.roomName} pada tanggal ${activeBookingOnSameDay.date} (Jam ${activeBookingOnSameDay.slot}, Durasi ${activeBookingOnSameDay.durasi} Jam, Status: ${statusLabel}).\n\n` +
+              `Sesuai ketentuan, satu mahasiswa tidak boleh memesan ruangan lain di hari yang sama sebelum pemesanan sebelumnya selesai.\n\n` +
+              `Silakan selesaikan sesi peminjaman Anda sebelumnya (kembalikan kunci fisik ke resepsionis dan selesaikan pemesanan) sebelum membuat pemesanan baru.`);
         return;
     }
 
@@ -1200,7 +1483,7 @@ function renderMyBookings() {
         return;
     }
 
-    const now = new Date();
+    const now = getSystemNow();
     const GRACE_PERIOD_MS = 15 * 60 * 1000;
 
     let html = '';
@@ -1318,7 +1601,7 @@ function renderAdminTable() {
         return;
     }
 
-    const now = new Date();
+    const now = getSystemNow();
     const GRACE_PERIOD_MS = 15 * 60 * 1000;
 
     let html = '';
@@ -1435,7 +1718,7 @@ function adminHandoverKey(bookingId) {
         return;
     }
 
-    const now = new Date();
+    const now = getSystemNow();
 
     // Constraint 1: Waktu pengambilan kunci minimal 10 menit sebelum digunakan (H-10 menit)
     const startDateTime = getSlotDateTime(target.date, target.slot);
@@ -1510,7 +1793,7 @@ function adminMarkGugur(bookingId) {
     if (target) {
         target.status = 'Gugur (>15m)';
         target.gugurReason = 'Digugurkan manual oleh petugas resepsionis (terlambat >15 menit).';
-        target.gugurAt = new Date().toISOString();
+        target.gugurAt = getSystemNow().toISOString();
         saveBookings(bookings);
         renderAdminTable();
         renderAdminRoomGrid();
@@ -1790,7 +2073,7 @@ function updateActiveSessionBanner() {
     }
 
     const endDateTime = new Date(active.scheduledEndAt);
-    const now = new Date();
+    const now = getSystemNow();
     const remainingMs = endDateTime - now;
 
     const roomEl = document.getElementById('active-session-room');
@@ -1914,7 +2197,7 @@ function simulate5mWarning() {
         alert('Tidak ada sesi aktif. Pastikan ada peminjaman berstatus "Sedang Digunakan".');
         return;
     }
-    const now = new Date();
+    const now = getSystemNow();
     active.scheduledEndAt = new Date(now.getTime() + (4 * 60 + 55) * 1000).toISOString();
     active.warned5m = false; // Reset flag to trigger
     saveBookings(bookings);
@@ -1929,7 +2212,7 @@ function simulateEndWarning() {
         alert('Tidak ada sesi aktif. Pastikan ada peminjaman berstatus "Sedang Digunakan".');
         return;
     }
-    const now = new Date();
+    const now = getSystemNow();
     active.scheduledEndAt = new Date(now.getTime() - 2000).toISOString();
     active.warnedEnd = false; // Reset flag to trigger
     isAlarmMuted = false;

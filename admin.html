@@ -1,112 +1,342 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal Admin Resepsionis - Peminjaman Ruang Diskusi</title>
-    <link rel="stylesheet" href="portal-style.css">
+    <title>Portal Admin Resepsionis - Peminjaman Ruang Diskusi PKN STAN</title>
+    <link rel="icon" href="https://portal.pknstan.ac.id/assets/plugins/images/stan_ico.ico">
+    <link rel="stylesheet" href="/portal-style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .realtime-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            background: rgba(16, 185, 129, 0.15);
+            color: #059669;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .realtime-badge.disconnected {
+            background: rgba(239, 68, 68, 0.15);
+            color: #dc2626;
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+        .realtime-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: currentColor;
+        }
+    </style>
 </head>
+
 <body style="background-color: #f8f9fa;">
     <div class="app-container">
         <!-- Top App Header Admin -->
-        <header class="app-header" style="background:#212529; color:white; border-bottom:3px solid #d92550;">
-            <div class="app-header__logo">
+        <header class="app-header" style="background:#1e293b; color:white; border-bottom:3px solid #f59e0b;">
+            <div class="app-header__logo" style="display:flex; align-items:center; gap:12px;">
+                <button class="btn-sidebar-toggle" onclick="toggleAdminSidebar()" title="Buka / Tutup Menu Navigasi Admin">
+                    <i class="fa fa-bars"></i>
+                </button>
                 <img src="https://portal.pknstan.ac.id/assets/plugins/images/stan_ico.ico" alt="PKN STAN Logo" width="36" height="36">
-                <strong style="color:white;">Dashboard Admin Resepsionis (Gedung P)</strong>
+                <div>
+                    <strong style="color:white; font-size:1.05rem; display:block;">Perpusku. Admin Panel</strong>
+                    <span style="font-size:0.75rem; color:#94a3b8;">Resepsionis Gedung P Lantai 1</span>
+                </div>
             </div>
-            <div class="app-header-user">
-                <div style="text-align:right; font-size:0.85rem; margin-right:10px;">
-                    <div style="font-weight:bold; color:#f7b924;"><i class="fa fa-user-shield"></i> Petugas Resepsionis</div>
-                    <div style="font-size:0.75rem; color:#aaa;">Gedung P Lantai 1</div>
+
+            <div style="display:flex; align-items:center; gap:16px;">
+                <!-- Header Live System Clock -->
+                <div id="header-clock-widget" class="header-clock-widget" onclick="switchAdminTab('simulasi')" title="Klik untuk membuka Pengaturan Simulasi Waktu">
+                    <i class="fa fa-clock" style="color:#f59e0b;"></i>
+                    <span id="header-clock-time" style="font-weight:700; font-family:monospace; font-size:0.92rem;">--:--:-- WIB</span>
+                    <span id="header-clock-mode-badge" class="badge" style="font-size:0.68rem; padding:2px 6px; background:#10b981; color:#fff; border-radius:10px;">Realtime</span>
+                </div>
+
+                <div id="realtime-status-badge" class="realtime-badge">
+                    <span class="realtime-dot"></span>
+                    <span id="realtime-status-text">Realtime Terhubung</span>
+                </div>
+
+                <div class="app-header-user" style="display:flex; align-items:center; gap:10px;">
+                    <div style="text-align:right; font-size:0.85rem;">
+                        <div id="admin-display-name" style="font-weight:bold; color:#f7b924;"><i class="fa fa-user-shield"></i> Petugas Resepsionis</div>
+                        <div style="font-size:0.75rem; color:#cbd5e1;">Gedung P Lantai 1</div>
+                    </div>
+                    <button class="btn btn-outline-danger btn-sm" onclick="location.reload()" title="Refresh" style="padding:4px 10px; font-size:0.8rem; border-color:#64748b; color:#cbd5e1; background:transparent; border-radius:4px; cursor:pointer;">
+                        <i class="fa fa-sync"></i>
+                    </button>
                 </div>
             </div>
         </header>
 
-        <main class="app-main__outer" style="padding: 1.5rem;">
-            <!-- Page Title Bar -->
-            <div class="app-page-title" style="background:white; padding:1.2rem; border-radius:0.45rem; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);">
-                <div class="page-title-heading">
-                    <h1>Monitoring & Serah Terima Kunci Ruang Diskusi</h1>
-                    <div class="page-title-subheading">Panel Kontrol Petugas Perpustakaan untuk Monitoring Ruangan, Penyerahan Kunci, dan Pembatalan Keterlambatan</div>
+        <!-- Admin Sidebar Drawer (Collapsible) -->
+        <aside id="admin-sidebar" class="admin-sidebar">
+            <div class="admin-sidebar-header">
+                <div class="title"><i class="fa fa-compass" style="color:#f59e0b;"></i> Menu Admin</div>
+                <button class="sidebar-close-btn" onclick="toggleAdminSidebar()" title="Tutup Menu">&times;</button>
+            </div>
+            <ul class="admin-sidebar-nav">
+                <li>
+                    <button id="nav-item-dashboard" class="admin-nav-item active" onclick="switchAdminTab('dashboard')">
+                        <i class="fa fa-tachometer-alt"></i>
+                        <span>Dashboard Monitoring</span>
+                    </button>
+                </li>
+                <li>
+                    <button id="nav-item-simulasi" class="admin-nav-item" onclick="switchAdminTab('simulasi')">
+                        <i class="fa fa-stopwatch"></i>
+                        <span>Simulasi Waktu Sistem</span>
+                        <span id="sidebar-sim-badge" class="badge" style="display:none; margin-left:auto; background:#f59e0b; color:#0f172a; font-size:0.65rem; font-weight:bold; padding:2px 6px; border-radius:10px;">SIMULASI</span>
+                    </button>
+                </li>
+            </ul>
+            <div class="admin-sidebar-footer">
+                <div><i class="fa fa-shield-alt"></i> Resepsionis Gedung P Lantai 1</div>
+                <div style="font-size:0.7rem; color:#475569; margin-top:2px;">Perpustakaan Civitas PKN STAN</div>
+            </div>
+        </aside>
+        <div id="admin-sidebar-backdrop" class="admin-sidebar-backdrop" onclick="toggleAdminSidebar()"></div>
+
+        <main class="app-main__outer" style="padding: 1.5rem; max-width:1400px; margin:0 auto; width:100%;">
+            <!-- Global Simulation Active Banner -->
+            <div id="simulation-active-banner" class="hidden" style="background:#fffbeb; border:1px solid #fde68a; border-left:5px solid #f59e0b; padding:12px 18px; margin-bottom:1.5rem; border-radius:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; box-shadow:0 2px 6px rgba(245,158,11,0.08);">
+                <div style="color:#92400e; font-size:0.9rem; display:flex; align-items:center; gap:10px;">
+                    <i class="fa fa-flask" style="font-size:1.3rem; color:#d97706;"></i>
+                    <div>
+                        <strong>MODE SIMULASI WAKTU AKTIF:</strong>
+                        <span style="margin-left:4px;">Sistem disetel ke <strong id="banner-sim-time" style="color:#b45309; text-decoration:underline;">-</strong></span>
+                    </div>
                 </div>
-                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                    <span class="badge badge-info" style="font-size:0.8rem; padding:0.45rem 0.65rem;"><i class="fa fa-robot"></i> Auto-Gugur Aktif (15 Menit)</span>
-                    <span class="badge badge-secondary" style="font-size:0.8rem; padding:0.45rem 0.65rem; background:#475569; color:white;"><i class="fa fa-key"></i> Ambil Kunci Min. H-10m</span>
-                    <button class="btn btn-warning btn-sm" onclick="triggerManualExpiryCheck()"><i class="fa fa-stopwatch"></i> Cek Keterlambatan</button>
-                    <button class="btn btn-secondary btn-sm" onclick="location.reload()"><i class="fa fa-sync"></i> Refresh Data</button>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-warning btn-sm" onclick="switchAdminTab('simulasi')" style="font-size:0.8rem; font-weight:600;"><i class="fa fa-sliders-h"></i> Kelola Simulasi</button>
+                    <button class="btn btn-secondary btn-sm" onclick="resetSimulationTime()" style="font-size:0.8rem;"><i class="fa fa-undo"></i> Reset ke Waktu Nyata</button>
                 </div>
             </div>
 
-            <!-- Live Status Grid Preview (Top Priority for Room Monitoring) -->
-            <div class="card">
-                <div class="card-header">
-                    <span><i class="fa fa-th"></i> Denah / Visualisasi Ketersediaan Ruangan Live</span>
+            <!-- View 1: Dashboard Monitoring (Default) -->
+            <div id="tab-admin-dashboard" class="admin-tab-view">
+                <!-- Page Title Bar -->
+                <div class="app-page-title" style="background:white; padding:1.2rem; border-radius:0.45rem; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075); margin-bottom:1.5rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px;">
+                    <div class="page-title-heading">
+                        <h1 style="font-size:1.5rem; color:#0f2b48; margin-bottom:4px;">Monitoring & Serah Terima Kunci Ruang Diskusi</h1>
+                        <div class="page-title-subheading" style="color:#64748b; font-size:0.88rem;">Panel Kontrol Petugas Perpustakaan untuk Verifikasi KTM, Penyerahan Kunci, dan Pengguguran Keterlambatan (>15m)</div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <span class="badge badge-info" style="font-size:0.8rem; padding:0.45rem 0.65rem;"><i class="fa fa-robot"></i> Auto-Gugur Aktif (15 Menit)</span>
+                        <span class="badge badge-secondary" style="font-size:0.8rem; padding:0.45rem 0.65rem; background:#475569; color:white;"><i class="fa fa-key"></i> Ambil Kunci Min. H-10m</span>
+                        <button class="btn btn-warning btn-sm" onclick="triggerManualExpiryCheck()"><i class="fa fa-stopwatch"></i> Cek Keterlambatan</button>
+                        <button class="btn btn-secondary btn-sm" onclick="refreshDataFromServer()"><i class="fa fa-sync"></i> Refresh Data</button>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div id="admin-room-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap:15px;">
-                        <!-- Dynamic JS rendered room cards -->
+
+                <!-- Live Status Grid Preview (Top Priority for Room Monitoring) -->
+                <div class="card" style="margin-bottom:1.5rem;">
+                    <div class="card-header">
+                        <span><i class="fa fa-th"></i> Denah / Visualisasi Ketersediaan Ruangan Live</span>
+                    </div>
+                    <div class="card-body">
+                        <div id="admin-room-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:15px;">
+                            <!-- Dynamic JS rendered room cards -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard Stat Cards -->
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:15px; margin-bottom:1.5rem;">
+                    <div class="card" style="margin-bottom:0; border-left: 4px solid #3f6ad8;">
+                        <div class="card-body">
+                            <div style="color:#6c757d; font-size:0.8rem; font-weight:bold;">TOTAL PEMINJAMAN HARI INI</div>
+                            <div id="stat-total" style="font-size:1.8rem; font-weight:bold; color:#333; margin-top:5px;">0</div>
+                        </div>
+                    </div>
+                    <div class="card" style="margin-bottom:0; border-left: 4px solid #f7b924;">
+                        <div class="card-body">
+                            <div style="color:#6c757d; font-size:0.8rem; font-weight:bold;">MENUNGGU SERAH TERIMA KUNCI</div>
+                            <div id="stat-pending" style="font-size:1.8rem; font-weight:bold; color:#f7b924; margin-top:5px;">0</div>
+                        </div>
+                    </div>
+                    <div class="card" style="margin-bottom:0; border-left: 4px solid #3ac47d;">
+                        <div class="card-body">
+                            <div style="color:#6c757d; font-size:0.8rem; font-weight:bold;">RUANGAN SEDANG DIGUNAKAN</div>
+                            <div id="stat-active" style="font-size:1.8rem; font-weight:bold; color:#3ac47d; margin-top:5px;">0</div>
+                        </div>
+                    </div>
+                    <div class="card" style="margin-bottom:0; border-left: 4px solid #d92550;">
+                        <div class="card-body">
+                            <div style="color:#6c757d; font-size:0.8rem; font-weight:bold;">GUGUR / DIBATALKAN</div>
+                            <div id="stat-cancelled" style="font-size:1.8rem; font-weight:bold; color:#d92550; margin-top:5px;">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Control Table -->
+                <div class="card" style="margin-top:1.5rem;">
+                    <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                        <span><i class="fa fa-tasks"></i> Daftar Permohonan & Aktivitas Ruang Diskusi</span>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <input type="text" id="admin-search" class="form-control" placeholder="Cari Nama / NIM / Ruangan..." style="width:260px;" onkeyup="renderAdminTable()">
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div style="overflow-x:auto;">
+                            <table class="table-custom">
+                                <thead>
+                                    <tr>
+                                        <th>Kode Booking</th>
+                                        <th>Pemesan & Kontak</th>
+                                        <th>Prodi & Kelas</th>
+                                        <th>Ruangan & Jam</th>
+                                        <th>Status Peminjaman</th>
+                                        <th style="text-align:center;">Aksi Resepsionis</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-table-body">
+                                    <!-- Dynamic JS rendered -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Dashboard Stat Cards -->
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:15px; margin-bottom:1.5rem;">
-                <div class="card" style="margin-bottom:0; border-left: 4px solid #3f6ad8;">
-                    <div class="card-body">
-                        <div style="color:#6c757d; font-size:0.8rem; font-weight:bold;">TOTAL PEMINJAMAN HARI INI</div>
-                        <div id="stat-total" style="font-size:1.8rem; font-weight:bold; color:#333; margin-top:5px;">0</div>
+            <!-- View 2: Simulasi Waktu Presentasi -->
+            <div id="tab-admin-simulasi" class="admin-tab-view hidden">
+                <div class="app-page-title" style="background:white; padding:1.2rem; border-radius:0.45rem; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075); margin-bottom:1.5rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px;">
+                    <div class="page-title-heading">
+                        <h1 style="font-size:1.5rem; color:#0f2b48; margin-bottom:4px;"><i class="fa fa-stopwatch" style="color:#f59e0b;"></i> Pengaturan Simulasi Waktu Sistem</h1>
+                        <div class="page-title-subheading" style="color:#64748b; font-size:0.88rem;">Manipulasi tanggal dan jam sistem secara realtime untuk skenario demonstrasi saat presentasi di kelas.</div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <button class="btn btn-secondary btn-sm" onclick="switchAdminTab('dashboard')"><i class="fa fa-arrow-left"></i> Kembali ke Dashboard</button>
+                        <button class="btn btn-danger btn-sm" onclick="resetSimulationTime()"><i class="fa fa-undo"></i> Reset ke Waktu Asli</button>
                     </div>
                 </div>
-                <div class="card" style="margin-bottom:0; border-left: 4px solid #f7b924;">
-                    <div class="card-body">
-                        <div style="color:#6c757d; font-size:0.8rem; font-weight:bold;">MENUNGGU SERAH TERIMA KUNCI</div>
-                        <div id="stat-pending" style="font-size:1.8rem; font-weight:bold; color:#f7b924; margin-top:5px;">0</div>
+
+                <!-- Clock Display Card -->
+                <div class="sim-clock-card">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:15px; margin-bottom:15px;">
+                        <div>
+                            <span style="font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; color:#94a3b8; font-weight:700;">Waktu Sistem Aktif Saat Ini</span>
+                            <div id="sim-display-clock" class="sim-clock-digits">--:--:-- WIB</div>
+                            <div id="sim-display-date" style="font-size:1rem; color:#e2e8f0; margin-top:4px;">-</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <span id="sim-status-badge" class="badge" style="font-size:0.85rem; padding:6px 14px; border-radius:20px; background:#10b981; color:#fff; font-weight:700;">
+                                <i class="fa fa-check-circle"></i> Mode Waktu Nyata
+                            </span>
+                            <div style="font-size:0.75rem; color:#94a3b8; margin-top:6px;">Detik & menit berjalan dinamis secara otomatis</div>
+                        </div>
+                    </div>
+                    
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; border-top:1px solid rgba(255,255,255,0.1); padding-top:15px;">
+                        <span style="font-size:0.82rem; color:#cbd5e1; font-weight:600;"><i class="fa fa-forward"></i> Maju Cepat Waktu:</span>
+                        <button class="btn btn-sm btn-outline-light" onclick="advanceSimulationTime(5)" style="font-size:0.8rem; padding:4px 10px;">+5 Menit</button>
+                        <button class="btn btn-sm btn-outline-light" onclick="advanceSimulationTime(10)" style="font-size:0.8rem; padding:4px 10px;">+10 Menit</button>
+                        <button class="btn btn-sm btn-outline-light" onclick="advanceSimulationTime(15)" style="font-size:0.8rem; padding:4px 10px;">+15 Menit</button>
+                        <button class="btn btn-sm btn-outline-light" onclick="advanceSimulationTime(30)" style="font-size:0.8rem; padding:4px 10px;">+30 Menit</button>
+                        <button class="btn btn-sm btn-outline-light" onclick="advanceSimulationTime(60)" style="font-size:0.8rem; padding:4px 10px;">+1 Jam</button>
                     </div>
                 </div>
-                <div class="card" style="margin-bottom:0; border-left: 4px solid #3ac47d;">
-                    <div class="card-body">
-                        <div style="color:#6c757d; font-size:0.8rem; font-weight:bold;">RUANGAN SEDANG DIGUNAKAN</div>
-                        <div id="stat-active" style="font-size:1.8rem; font-weight:bold; color:#3ac47d; margin-top:5px;">0</div>
+
+                <!-- Custom DateTime Picker & Quick Preset Grid -->
+                <div style="display:grid; grid-template-columns: 1fr 2fr; gap:20px; margin-bottom:20px;" class="sim-controls-layout">
+                    <!-- Set Custom Date & Time -->
+                    <div class="card" style="margin-bottom:0;">
+                        <div class="card-header" style="background:#f8fafc;">
+                            <span style="font-weight:700; color:#0f2b48;"><i class="fa fa-calendar-alt" style="color:#3b82f6;"></i> Atur Waktu Manual</span>
+                        </div>
+                        <div class="card-body">
+                            <form onsubmit="handleCustomSimTimeSubmit(event)">
+                                <div class="form-group" style="margin-bottom:14px;">
+                                    <label style="font-weight:600; font-size:0.85rem; color:#334155; margin-bottom:6px; display:block;">Pilih Tanggal:</label>
+                                    <input type="date" id="sim-input-date" class="form-control" required style="font-size:0.9rem;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:18px;">
+                                    <label style="font-weight:600; font-size:0.85rem; color:#334155; margin-bottom:6px; display:block;">Pilih Jam & Menit:</label>
+                                    <input type="time" id="sim-input-time" class="form-control" required style="font-size:0.9rem;">
+                                </div>
+                                <button type="submit" class="btn btn-primary" style="width:100%; font-weight:600; font-size:0.9rem;">
+                                    <i class="fa fa-play"></i> Terapkan Waktu Simulasi
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="resetSimulationTime()" style="width:100%; margin-top:8px; font-size:0.85rem;">
+                                    <i class="fa fa-undo"></i> Kembalikan ke Waktu Nyata
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                </div>
-                <div class="card" style="margin-bottom:0; border-left: 4px solid #d92550;">
-                    <div class="card-body">
-                        <div style="color:#6c757d; font-size:0.8rem; font-weight:bold;">GUGUR / DIBATALKAN</div>
-                        <div id="stat-cancelled" style="font-size:1.8rem; font-weight:bold; color:#d92550; margin-top:5px;">0</div>
+
+                    <!-- Preset Skenario Presentasi -->
+                    <div class="card" style="margin-bottom:0;">
+                        <div class="card-header" style="background:#f8fafc; display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-weight:700; color:#0f2b48;"><i class="fa fa-magic" style="color:#f59e0b;"></i> Preset Skenario Presentasi</span>
+                            <span style="font-size:0.75rem; color:#64748b;">1-Klik Langsung Aktif</span>
+                        </div>
+                        <div class="card-body">
+                            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap:12px;">
+                                <!-- Preset 1 -->
+                                <div class="sim-preset-card" onclick="applyPresetTime('08:50')">
+                                    <div>
+                                        <div class="sim-preset-title"><i class="fa fa-key" style="color:#3b82f6;"></i> 08.50 WIB (H-10 Menit)</div>
+                                        <div class="sim-preset-desc">Skenario buka penyerahan kunci untuk sesi 09.00 (syarat minimal H-10 menit terpenuhi).</div>
+                                    </div>
+                                    <div style="margin-top:10px; font-size:0.72rem; color:#0284c7; font-weight:700;">KLIK UNTUK TERAPKAN &rarr;</div>
+                                </div>
+
+                                <!-- Preset 2 -->
+                                <div class="sim-preset-card" onclick="applyPresetTime('09:16')">
+                                    <div>
+                                        <div class="sim-preset-title"><i class="fa fa-user-slash" style="color:#ef4444;"></i> 09.16 WIB (Lewat 15 Menit)</div>
+                                        <div class="sim-preset-desc">Skenario kunci tidak diambil >15 menit dari jadwal 09.00. Memicu status otomatis <strong>Gugur (>15m)</strong>.</div>
+                                    </div>
+                                    <div style="margin-top:10px; font-size:0.72rem; color:#dc2626; font-weight:700;">KLIK UNTUK TERAPKAN &rarr;</div>
+                                </div>
+
+                                <!-- Preset 3 -->
+                                <div class="sim-preset-card" onclick="applyPresetTime('10:55')">
+                                    <div>
+                                        <div class="sim-preset-title"><i class="fa fa-bell" style="color:#f59e0b;"></i> 10.55 WIB (H-5m Sebelum Selesai)</div>
+                                        <div class="sim-preset-desc">Skenario pengingat 5 menit terakhir untuk peminjaman sesi 09.00 - 11.00 (memicu notifikasi audio & popup).</div>
+                                    </div>
+                                    <div style="margin-top:10px; font-size:0.72rem; color:#d97706; font-weight:700;">KLIK UNTUK TERAPKAN &rarr;</div>
+                                </div>
+
+                                <!-- Preset 4 -->
+                                <div class="sim-preset-card" onclick="applyPresetTime('11:45')">
+                                    <div>
+                                        <div class="sim-preset-title"><i class="fa fa-utensils" style="color:#8b5cf6;"></i> 11.45 WIB (Batas Sisa Waktu 20m)</div>
+                                        <div class="sim-preset-desc">Sisa waktu menuju jam istirahat (12.00) tinggal 15 menit (&lt; 20 menit). Menguji constraint tolak pemesanan 1 jam.</div>
+                                    </div>
+                                    <div style="margin-top:10px; font-size:0.72rem; color:#7c3aed; font-weight:700;">KLIK UNTUK TERAPKAN &rarr;</div>
+                                </div>
+
+                                <!-- Preset 5 -->
+                                <div class="sim-preset-card" onclick="applyPresetTime('13:00')">
+                                    <div>
+                                        <div class="sim-preset-title"><i class="fa fa-sun" style="color:#10b981;"></i> 13.00 WIB (Sesi Siang)</div>
+                                        <div class="sim-preset-desc">Selesai jam istirahat/sterilisasi ruangan. Menampilkan ketersediaan sesi siang untuk civitas.</div>
+                                    </div>
+                                    <div style="margin-top:10px; font-size:0.72rem; color:#059669; font-weight:700;">KLIK UNTUK TERAPKAN &rarr;</div>
+                                </div>
+
+                                <!-- Preset 6 -->
+                                <div class="sim-preset-card" onclick="applyPresetTime('15:58')">
+                                    <div>
+                                        <div class="sim-preset-title"><i class="fa fa-door-closed" style="color:#64748b;"></i> 15.58 WIB (Jelang Tutup 16.00)</div>
+                                        <div class="sim-preset-desc">Skenario waktu tutup perpustakaan pukul 16.00 dan pengembalian kunci sesi terakhir.</div>
+                                    </div>
+                                    <div style="margin-top:10px; font-size:0.72rem; color:#475569; font-weight:700;">KLIK UNTUK TERAPKAN &rarr;</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Main Control Table -->
-            <div class="card">
-                <div class="card-header">
-                    <span><i class="fa fa-tasks"></i> Daftar Permohonan & Aktivitas Ruang Diskusi</span>
-                    <div style="display:flex; gap:10px; align-items:center;">
-                        <input type="text" id="admin-search" class="form-control" placeholder="Cari Nama / NIM / Ruangan..." style="width:250px;" onkeyup="renderAdminTable()">
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div style="overflow-x:auto;">
-                        <table class="table-custom">
-                            <thead>
-                                <tr>
-                                    <th>Kode Booking</th>
-                                    <th>Pemesan & Kontak</th>
-                                    <th>Prodi & Kelas</th>
-                                    <th>Ruangan & Jam</th>
-                                    <th>Status Peminjaman</th>
-                                    <th style="text-align:center;">Aksi Resepsionis</th>
-                                </tr>
-                            </thead>
-                            <tbody id="admin-table-body">
-                                <!-- Dynamic JS rendered -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
         </main>
     </div>
 
@@ -129,14 +359,22 @@
         </div>
     </div>
 
-    <!-- Script Application Logic -->
+    <!-- Socket.IO and App Logic -->
+    <script src="/socket.io/socket.io.js"></script>
     <script src="app.js"></script>
     <script>
-        // Ensure initial render is for admin
         document.addEventListener('DOMContentLoaded', () => {
             renderAdminTable();
             renderAdminRoomGrid();
         });
+
+        function refreshDataFromServer() {
+            if (typeof fetchBookingsFromServer === 'function') {
+                fetchBookingsFromServer();
+            } else {
+                location.reload();
+            }
+        }
     </script>
 </body>
 </html>
