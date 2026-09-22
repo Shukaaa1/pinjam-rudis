@@ -356,10 +356,27 @@ if (typeof io !== 'undefined') {
     });
 
     // Realtime Notification from Admin to Student
+    const processedStudentNotifIds = new Set();
+    let lastStudentNotifSoundTime = 0;
+
     socket.on('student:notification_received', (notif) => {
         if (!notif) return;
         const isForMe = (notif.targetNim === 'all' || notif.targetNim === CURRENT_USER.nim);
         if (!isForMe) return;
+
+        // Cegah pemrosesan ganda jika menerima notifikasi yang sama dalam waktu singkat
+        if (notif.id && processedStudentNotifIds.has(notif.id)) return;
+        const now = Date.now();
+        if (now - lastStudentNotifSoundTime < 1500) return;
+
+        if (notif.id) {
+            processedStudentNotifIds.add(notif.id);
+            if (processedStudentNotifIds.size > 50) {
+                const firstVal = processedStudentNotifIds.values().next().value;
+                processedStudentNotifIds.delete(firstVal);
+            }
+        }
+        lastStudentNotifSoundTime = now;
 
         playChimeSound('notification');
         sendSystemNotification(notif.title, notif.message);
@@ -1265,6 +1282,9 @@ function closeModal(modalId) {
     if (modalId === 'modal-session-ended' && typeof stopExpiredChimeLoop === 'function') {
         stopExpiredChimeLoop();
     }
+    if (modalId === 'modal-warning-5m' && typeof stopWarningChime === 'function') {
+        stopWarningChime();
+    }
 }
 
 // Pratinjau Dokumen Surat Tugas
@@ -2094,8 +2114,8 @@ function playCustomAudio(candidates, onFallback) {
     tryCandidate(0);
 }
 
-// Fungsi utama pemutar nada bel notifikasi dan alarm
-function playChimeSound(type = 'warning') {
+// Memutar nada tunggal (tepat 1 kali) baik melalui file kustom maupun synthesizer
+function playSingleChime(type = 'notification') {
     if (!soundEnabled) return;
     try {
         getAudioContext();
@@ -2112,6 +2132,56 @@ function playChimeSound(type = 'warning') {
     } catch (e) {
         console.warn('Audio playback error:', e);
         playSynthesizedChime(type);
+    }
+}
+window.playSingleChime = playSingleChime;
+
+// Controller pengulangan nada peringatan (khusus warning dibunyikan 10 kali)
+let warningChimeTimeout = null;
+let warningChimeCount = 0;
+
+function stopWarningChime() {
+    if (warningChimeTimeout) {
+        clearTimeout(warningChimeTimeout);
+        warningChimeTimeout = null;
+    }
+    warningChimeCount = 0;
+}
+window.stopWarningChime = stopWarningChime;
+
+function playWarningSequence(total = 10, intervalMs = 1200) {
+    stopWarningChime();
+    if (!soundEnabled) return;
+
+    warningChimeCount = 0;
+    const step = () => {
+        if (!soundEnabled || warningChimeCount >= total) {
+            stopWarningChime();
+            return;
+        }
+        warningChimeCount++;
+        playSingleChime('warning');
+
+        if (warningChimeCount < total) {
+            warningChimeTimeout = setTimeout(step, intervalMs);
+        } else {
+            warningChimeTimeout = null;
+        }
+    };
+
+    step();
+}
+window.playWarningSequence = playWarningSequence;
+
+// Fungsi utama: memutar suara notifikasi
+// Secara default diputar tepat 1 kali saja, kecuali peringatan 'warning' (5 menit) yang berulang 10 kali
+function playChimeSound(type = 'notification') {
+    if (!soundEnabled) return;
+
+    if (type === 'warning') {
+        playWarningSequence(10, 1200);
+    } else {
+        playSingleChime(type);
     }
 }
 
@@ -2134,10 +2204,11 @@ function toggleAudioChime() {
     const btn = document.getElementById('btn-audio-toggle');
     if (soundEnabled) {
         getAudioContext();
-        playChimeSound('warning');
+        playSingleChime('notification'); // Uji nada tepat 1 kali saat mengaktifkan suara
         if (btn) btn.innerHTML = '<i class="fa fa-volume-up"></i> Suara Aktif';
     } else {
         stopExpiredChimeLoop();
+        stopWarningChime();
         if (btn) btn.innerHTML = '<i class="fa fa-volume-mute"></i> Suara Senyap';
     }
 }
@@ -2552,15 +2623,15 @@ function submitAdminNotification() {
         createdAt: getSystemNow().toISOString()
     };
 
-    if (typeof socket !== 'undefined' && socket) {
+    if (typeof socket !== 'undefined' && socket && socket.connected) {
         socket.emit('admin:send_notification', payload);
+    } else {
+        fetch('/api/notifications', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).catch(err => console.warn('HTTP Notification send warning:', err));
     }
-
-    fetch('/api/notifications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    }).catch(err => console.warn('HTTP Notification send warning:', err));
 
     closeModal('modal-send-student-notification');
     alert('Notifikasi berhasil dikirimkan ke mahasiswa secara realtime!');

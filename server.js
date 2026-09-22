@@ -254,6 +254,17 @@ app.post('/api/notifications', (req, res) => {
     if (!message) {
         return res.status(400).json({ error: 'Pesan notifikasi tidak boleh kosong' });
     }
+
+    // Cegah duplikasi broadcast jika permintaan yang sama baru saja dikirim via socket
+    const isDuplicate = activeNotifications.length > 0 &&
+        activeNotifications[0].targetNim === (targetNim || 'all') &&
+        activeNotifications[0].message === message &&
+        (Date.now() - new Date(activeNotifications[0].createdAt).getTime() < 3000);
+
+    if (isDuplicate) {
+        return res.json({ success: true, notification: activeNotifications[0], duplicateIgnored: true });
+    }
+
     const notif = {
         id: 'NTF-' + Date.now(),
         targetNim: targetNim || 'all',
@@ -327,6 +338,15 @@ io.on('connection', (socket) => {
     // Listen for admin sending notifications
     socket.on('admin:send_notification', (data) => {
         if (!data || !data.message) return;
+
+        // Cegah duplikasi broadcast jika pesan yang sama diterima dalam rentang 3 detik
+        const isDuplicate = activeNotifications.length > 0 &&
+            activeNotifications[0].targetNim === (data.targetNim || 'all') &&
+            activeNotifications[0].message === data.message &&
+            (Date.now() - new Date(activeNotifications[0].createdAt).getTime() < 3000);
+
+        if (isDuplicate) return;
+
         const notif = {
             id: 'NTF-' + Date.now(),
             targetNim: data.targetNim || 'all',
