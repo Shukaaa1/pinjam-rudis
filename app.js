@@ -774,7 +774,11 @@ function switchTab(tabId) {
 window.switchTab = switchTab;
 
 function closeModal(modalId) {
-    document.getElementById(modalId).classList.add('hidden');
+    const el = document.getElementById(modalId);
+    if (el) el.classList.add('hidden');
+    if (modalId === 'modal-session-ended' && typeof stopExpiredChimeLoop === 'function') {
+        stopExpiredChimeLoop();
+    }
 }
 
 function handleDurasiChange() {
@@ -993,6 +997,7 @@ function cancelBooking(bookingId) {
     target.status = 'Dibatalkan';
     target.cancelledAt = new Date().toISOString();
     saveBookings(bookings);
+    if (typeof stopExpiredChimeLoop === 'function') stopExpiredChimeLoop();
     triggerAllUIRenders();
 
     alert(`Peminjaman ${target.id} (${target.roomName}) berhasil dibatalkan.\nRuangan telah kembali tersedia untuk pemesan lain.`);
@@ -1197,6 +1202,7 @@ function adminReturnKey(bookingId) {
     if (target) {
         target.status = 'Selesai';
         saveBookings(bookings);
+        if (typeof stopExpiredChimeLoop === 'function') stopExpiredChimeLoop();
         renderAdminTable();
         renderAdminRoomGrid();
         if (typeof updateActiveSessionBanner === 'function') updateActiveSessionBanner();
@@ -1355,6 +1361,7 @@ function toggleAudioChime() {
         playChimeSound('warning');
         if (btn) btn.innerHTML = '<i class="fa fa-volume-up"></i> Suara Aktif';
     } else {
+        stopExpiredChimeLoop();
         if (btn) btn.innerHTML = '<i class="fa fa-volume-mute"></i> Suara Senyap';
     }
 }
@@ -1369,6 +1376,65 @@ function formatDuration(ms) {
 
     const pad = n => String(n).padStart(2, '0');
     return `${pad(hours)}:${pad(mins)}:${pad(secs)}`;
+}
+
+// Expired chime looping state & controllers
+let expiredChimeInterval = null;
+let isAlarmMuted = false;
+let lastBrowserNotifTime = 0;
+
+function startExpiredChimeLoop() {
+    if (expiredChimeInterval || isAlarmMuted || !soundEnabled) return;
+    getAudioContext();
+    playChimeSound('urgent');
+    expiredChimeInterval = setInterval(() => {
+        if (!isAlarmMuted && soundEnabled) {
+            playChimeSound('urgent');
+        } else {
+            stopExpiredChimeLoop();
+        }
+    }, 4000);
+    updateMuteButtonUI();
+}
+
+function stopExpiredChimeLoop() {
+    if (expiredChimeInterval) {
+        clearInterval(expiredChimeInterval);
+        expiredChimeInterval = null;
+    }
+    updateMuteButtonUI();
+}
+
+function toggleMuteExpiredAlarm() {
+    isAlarmMuted = !isAlarmMuted;
+    if (isAlarmMuted) {
+        stopExpiredChimeLoop();
+    } else {
+        const bookings = getBookings();
+        const active = bookings.find(b => b.nim === CURRENT_USER.nim && b.status === 'Sedang Digunakan')
+            || bookings.find(b => b.status === 'Sedang Digunakan');
+        if (active && active.scheduledEndAt && new Date(active.scheduledEndAt) <= new Date()) {
+            startExpiredChimeLoop();
+        }
+    }
+    updateMuteButtonUI();
+}
+window.toggleMuteExpiredAlarm = toggleMuteExpiredAlarm;
+
+function updateMuteButtonUI() {
+    const bannerBtn = document.getElementById('btn-expired-mute');
+    const modalBtn = document.getElementById('btn-modal-mute-alarm');
+    const labelText = isAlarmMuted ? 'Bunyikan Alarm' : 'Senyapkan Alarm';
+    const iconClass = isAlarmMuted ? 'fa fa-bell' : 'fa fa-volume-mute';
+
+    if (bannerBtn) {
+        bannerBtn.innerHTML = `<i class="${iconClass}"></i> ${labelText}`;
+        bannerBtn.className = isAlarmMuted ? 'btn btn-outline-warning btn-sm' : 'btn btn-danger btn-sm';
+    }
+    if (modalBtn) {
+        modalBtn.innerHTML = `<i class="${iconClass}"></i> ${labelText}`;
+        modalBtn.className = isAlarmMuted ? 'btn btn-warning' : 'btn btn-outline-secondary';
+    }
 }
 
 // Modal helper for 5-minute warning
@@ -1386,6 +1452,7 @@ function showSessionEndedModal(booking) {
     if (!modal) return;
     const roomSpan = document.getElementById('ended-room-name');
     if (roomSpan) roomSpan.innerText = booking.roomName;
+    updateMuteButtonUI();
     modal.classList.remove('hidden');
 }
 
@@ -1415,6 +1482,9 @@ function updateActiveSessionBanner() {
 
     if (!active) {
         widget.classList.add('hidden');
+        stopExpiredChimeLoop();
+        const muteBtn = document.getElementById('btn-expired-mute');
+        if (muteBtn) muteBtn.classList.add('hidden');
         return;
     }
 
@@ -1435,6 +1505,8 @@ function updateActiveSessionBanner() {
     const metaEl = document.getElementById('active-session-meta');
     const countdownEl = document.getElementById('active-session-countdown');
     const iconEl = document.getElementById('countdown-icon');
+    const labelEl = document.getElementById('countdown-label');
+    const muteBtn = document.getElementById('btn-expired-mute');
 
     if (roomEl) roomEl.innerText = active.roomName;
     if (metaEl) {
@@ -1455,6 +1527,13 @@ function updateActiveSessionBanner() {
     if (remainingMs > 5 * 60 * 1000) {
         // Normal state (> 5 mins)
         widget.classList.remove('warning-5m', 'expired');
+        stopExpiredChimeLoop();
+        isAlarmMuted = false;
+        if (muteBtn) muteBtn.classList.add('hidden');
+        if (labelEl) {
+            labelEl.innerText = 'Sisa Waktu';
+            labelEl.style.color = '#6c757d';
+        }
         if (iconEl) {
             iconEl.className = 'fa fa-stopwatch';
             iconEl.style.color = '#3f6ad8';
@@ -1466,6 +1545,13 @@ function updateActiveSessionBanner() {
         // 5-minute warning state
         widget.classList.add('warning-5m');
         widget.classList.remove('expired');
+        stopExpiredChimeLoop();
+        isAlarmMuted = false;
+        if (muteBtn) muteBtn.classList.add('hidden');
+        if (labelEl) {
+            labelEl.innerText = 'Sisa Waktu';
+            labelEl.style.color = '#b58105';
+        }
         if (iconEl) {
             iconEl.className = 'fa fa-exclamation-triangle';
             iconEl.style.color = '#b58105';
@@ -1486,21 +1572,43 @@ function updateActiveSessionBanner() {
         // Expired state (<= 0)
         widget.classList.remove('warning-5m');
         widget.classList.add('expired');
+        if (muteBtn) muteBtn.classList.remove('hidden');
+        if (labelEl) {
+            labelEl.innerText = 'Waktu Lewat';
+            labelEl.style.color = '#d92550';
+        }
         if (iconEl) {
             iconEl.className = 'fa fa-clock';
             iconEl.style.color = '#d92550';
         }
+        const overdueMs = Math.max(0, -remainingMs);
         if (countdownEl) {
-            countdownEl.innerText = 'WAKTU HABIS';
+            countdownEl.innerText = '-' + formatDuration(overdueMs);
         }
 
-        // Trigger finished alert once
+        // Trigger finished alert & start continuous chime loop
         if (!active.warnedEnd) {
             active.warnedEnd = true;
             saveBookings(bookings);
-            playChimeSound('urgent');
+            isAlarmMuted = false;
             showSessionEndedModal(active);
+            startExpiredChimeLoop();
             sendSystemNotification('Waktu Peminjaman Berakhir', `Waktu peminjaman ${active.roomName} telah habis. Silakan kembalikan kunci.`);
+            lastBrowserNotifTime = Date.now();
+        } else {
+            // Keep chime loop active if modal is open and not muted
+            const modal = document.getElementById('modal-session-ended');
+            const isModalOpen = modal && !modal.classList.contains('hidden');
+            if (isModalOpen && !isAlarmMuted && !expiredChimeInterval) {
+                startExpiredChimeLoop();
+            }
+
+            // Periodic browser notification reminder every 60 seconds while expired
+            const nowTs = Date.now();
+            if (nowTs - lastBrowserNotifTime > 60000) {
+                sendSystemNotification('Waktu Peminjaman Lewat', `Waktu ${active.roomName} telah lewat. Mohon segera serahkan kunci ke resepsionis.`);
+                lastBrowserNotifTime = nowTs;
+            }
         }
     }
 }
@@ -1532,6 +1640,8 @@ function simulateEndWarning() {
     const now = new Date();
     active.scheduledEndAt = new Date(now.getTime() - 2000).toISOString();
     active.warnedEnd = false; // Reset flag to trigger
+    isAlarmMuted = false;
+    stopExpiredChimeLoop();
     saveBookings(bookings);
     updateActiveSessionBanner();
 }

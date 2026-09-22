@@ -114,13 +114,16 @@
                     <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                         <div class="countdown-box">
                             <div style="text-align:right;">
-                                <div style="font-size:0.7rem; color:#6c757d; font-weight:600; text-transform:uppercase;">Sisa Waktu</div>
+                                <div id="countdown-label" style="font-size:0.7rem; color:#6c757d; font-weight:600; text-transform:uppercase;">Sisa Waktu</div>
                                 <div id="active-session-countdown" class="countdown-digits">00:00:00</div>
                             </div>
                             <i id="countdown-icon" class="fa fa-stopwatch" style="font-size:1.6rem; color:#3f6ad8;"></i>
                         </div>
                         <button id="btn-audio-toggle" class="btn btn-secondary btn-sm" onclick="toggleAudioChime()" title="Uji Nada Bel Peringatan">
                             <i class="fa fa-volume-up"></i> Suara Aktif
+                        </button>
+                        <button id="btn-expired-mute" class="btn btn-danger btn-sm hidden" onclick="toggleMuteExpiredAlarm()" title="Senyapkan atau bunyikan kembali alarm">
+                            <i class="fa fa-volume-mute"></i> Senyapkan Alarm
                         </button>
                         <button id="btn-active-cancel" class="btn btn-outline-danger btn-sm hidden" onclick="cancelActiveSession()" title="Batalkan Peminjaman Sesi Ini">
                             <i class="fa fa-times"></i> Batalkan Sesi
@@ -571,7 +574,10 @@
                     <li><i class="fa fa-key" style="color:#3f6ad8;"></i> Kembalikan kunci ke resepsionis (Lt. 1) & ambil kembali KTM</li>
                 </ul>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <button type="button" id="btn-modal-mute-alarm" class="btn btn-outline-secondary" onclick="toggleMuteExpiredAlarm()" style="font-weight:600;">
+                    <i class="fa fa-volume-mute"></i> Senyapkan Alarm
+                </button>
                 <button type="button" class="btn btn-danger" onclick="closeModal('modal-session-ended')" style="font-weight:600;">
                     <i class="fa fa-door-closed"></i> Selesai & Kembalikan Kunci
                 </button>
