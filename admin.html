@@ -328,10 +328,10 @@
                                 </div>
 
                                 <!-- Preset 6 -->
-                                <div class="sim-preset-card" onclick="applyPresetTime('15:58')">
+                                <div class="sim-preset-card" onclick="applyPresetTime('16:58')">
                                     <div>
-                                        <div class="sim-preset-title"><i class="fa fa-door-closed" style="color:#64748b;"></i> 15.58 WIB (Jelang Tutup 16.00)</div>
-                                        <div class="sim-preset-desc">Skenario waktu tutup perpustakaan pukul 16.00 dan pengembalian kunci sesi terakhir.</div>
+                                        <div class="sim-preset-title"><i class="fa fa-door-closed" style="color:#64748b;"></i> 16.58 WIB (Jelang Tutup 17.00)</div>
+                                        <div class="sim-preset-desc">Skenario waktu tutup perpustakaan pukul 17.00 dan pengembalian kunci sesi terakhir.</div>
                                     </div>
                                     <div style="margin-top:10px; font-size:0.72rem; color:#475569; font-weight:700;">KLIK UNTUK TERAPKAN &rarr;</div>
                                 </div>
@@ -433,6 +433,43 @@
             <div class="modal-footer" style="padding:12px 16px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:10px;">
                 <a id="btn-download-doc" href="#" download class="btn btn-outline-secondary btn-sm" style="font-weight:600;"><i class="fa fa-download"></i> Unduh Berkas</a>
                 <button type="button" class="btn btn-primary btn-sm" onclick="closeModal('modal-doc-preview')">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Konfirmasi Gugurkan Pemesanan untuk Petugas Resepsionis -->
+    <div id="modal-mark-gugur" class="modal-backdrop hidden">
+        <div class="modal-content" style="max-width: 520px; border-top: 4px solid #dc2626;">
+            <div class="modal-header" style="background:#fef2f2; border-bottom:1px solid #fee2e2; display:flex; justify-content:space-between; align-items:center;">
+                <h5 style="color:#b91c1c; margin:0; display:flex; align-items:center; gap:8px;">
+                    <i class="fa fa-user-slash"></i> Gugurkan Pemesanan
+                </h5>
+                <button type="button" class="modal-close" onclick="closeModal('modal-mark-gugur')">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 18px 20px;">
+                <input type="hidden" id="gugur-booking-id">
+                <div id="gugur-booking-info" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:12px; margin-bottom:15px; font-size:0.85rem; line-height:1.6;">
+                    <!-- Diisi secara dinamis -->
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label style="font-size:0.82rem; font-weight:700; color:#334155; margin-bottom:6px; display:block;">Pilih Alasan Cepat:</label>
+                    <select id="gugur-preset-select" class="form-control" onchange="handleGugurPresetChange(this.value)" style="font-size:0.85rem;">
+                        <option value="Terlambat hadir >15 menit dari jadwal / batas toleransi.">Terlambat hadir >15 menit dari jadwal</option>
+                        <option value="Pemesan atau kelompok tidak hadir di meja resepsionis.">Pemesan/kelompok tidak hadir di resepsionis</option>
+                        <option value="KTM atau identitas fisik tidak sesuai dengan pemesan.">KTM/Identitas tidak valid atau tidak sesuai</option>
+                        <option value="Jumlah anggota kelompok kurang dari 3 orang (tidak memenuhi syarat).">Jumlah pengguna kurang dari 3 orang</option>
+                        <option value="custom">Tulis Alasan Kustom...</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom:6px;">
+                    <label for="gugur-reason-text" style="font-size:0.82rem; font-weight:700; color:#334155; margin-bottom:6px; display:block;">Alasan Pengguguran (Wajib):</label>
+                    <textarea id="gugur-reason-text" class="form-control" rows="3" placeholder="Tulis alasan mengapa pemesanan digugurkan..." style="font-size:0.85rem; resize:vertical;"></textarea>
+                    <small style="color:#64748b; font-size:0.75rem;">Alasan ini akan tersimpan pada sistem dan dapat dibaca oleh mahasiswa di riwayat pemesanannya.</small>
+                </div>
+            </div>
+            <div class="modal-footer" style="padding:12px 20px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:10px;">
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="closeModal('modal-mark-gugur')">Batal</button>
+                <button type="button" class="btn btn-danger btn-sm" onclick="confirmSubmitAdminGugur()"><i class="fa fa-user-slash"></i> Gugurkan Pemesanan</button>
             </div>
         </div>
     </div>

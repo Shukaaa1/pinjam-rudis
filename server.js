@@ -172,11 +172,16 @@ function checkAutoExpire() {
         if (b.status === 'Menunggu Kunci') {
             const startDateTime = getSlotDateTime(b.date, b.slot);
             if (startDateTime) {
-                const baseTime = b.createdAt ? Math.max(startDateTime.getTime(), new Date(b.createdAt).getTime()) : startDateTime.getTime();
-                const deadline = new Date(baseTime + GRACE_PERIOD_MS);
+                let deadline;
+                if (b.pickupDeadline) {
+                    deadline = new Date(b.pickupDeadline);
+                } else {
+                    const baseTime = b.createdAt ? Math.max(startDateTime.getTime(), new Date(b.createdAt).getTime()) : startDateTime.getTime();
+                    deadline = new Date(baseTime + GRACE_PERIOD_MS);
+                }
                 if (now > deadline) {
                     b.status = 'Gugur (>15m)';
-                    b.gugurReason = 'Otomatis gugur oleh sistem: Kunci tidak diambil dalam batas toleransi 15 menit.';
+                    b.gugurReason = b.gugurReason || 'Otomatis gugur oleh sistem: Kunci tidak diambil dalam batas toleransi 15 menit.';
                     b.gugurAt = now.toISOString();
                     changed = true;
                 }

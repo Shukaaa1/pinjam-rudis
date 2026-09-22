@@ -128,15 +128,6 @@
                             </div>
                             <i id="countdown-icon" class="fa fa-stopwatch" style="font-size:1.6rem; color:#3f6ad8;"></i>
                         </div>
-                        <button id="btn-audio-toggle" class="btn btn-secondary btn-sm" onclick="toggleAudioChime()" title="Uji Nada Bel Peringatan">
-                            <i class="fa fa-volume-up"></i> Suara Aktif
-                        </button>
-                        <button id="btn-expired-mute" class="btn btn-danger btn-sm hidden" onclick="toggleMuteExpiredAlarm()" title="Senyapkan atau bunyikan kembali alarm">
-                            <i class="fa fa-volume-mute"></i> Senyapkan Alarm
-                        </button>
-                        <button id="btn-active-cancel" class="btn btn-outline-danger btn-sm hidden" onclick="cancelActiveSession()" title="Batalkan Peminjaman Sesi Ini">
-                            <i class="fa fa-times"></i> Batalkan Sesi
-                        </button>
                     </div>
                 </div>
 
@@ -201,6 +192,7 @@
                                             <th>13.00 - 14.00</th>
                                             <th>14.00 - 15.00</th>
                                             <th>15.00 - 16.00</th>
+                                            <th>16.00 - 17.00</th>
                                         </tr>
                                     </thead>
                                     <tbody id="matrix-grid-body">
@@ -331,8 +323,8 @@
                                         Seluruh ruang diskusi steril dan tidak dapat digunakan saat jam istirahat. Pemesanan slot pukul 11.00 dibatasi maksimal 1 jam.
                                     </li>
                                     <li style="margin-bottom: 8px;">
-                                        <strong>Jam Tutup Layanan (16.00):</strong>
-                                        Layanan ruang diskusi perpustakaan tutup pukul 16.00. Pemesanan slot pukul 15.00 dibatasi maksimal 1 jam.
+                                        <strong>Jam Tutup Layanan (17.00):</strong>
+                                        Layanan ruang diskusi perpustakaan tutup pukul 17.00. Pemesanan slot pukul 16.00 dibatasi maksimal 1 jam.
                                     </li>
                                     <li style="margin-bottom: 8px;">
                                         <strong>Pemanfaatan Sisa Jam Berjalan (Minimal 20 Menit):</strong>
@@ -571,6 +563,7 @@
                                 <option value="13.00">13.00</option>
                                 <option value="14.00">14.00</option>
                                 <option value="15.00">15.00</option>
+                                <option value="16.00">16.00</option>
                             </select>
                         </div>
 

@@ -16,7 +16,7 @@ const MASTER_ROOMS = [
     { id: 'RD-09', name: 'Ruang Diskusi 9', cap: 8, desc: 'Maks. 8 Orang' }
 ];
 
-const TIME_SLOTS = ['08.00', '09.00', '10.00', '11.00', '13.00', '14.00', '15.00'];
+const TIME_SLOTS = ['08.00', '09.00', '10.00', '11.00', '13.00', '14.00', '15.00', '16.00'];
 
 // ==========================================
 // SYSTEM TIME & PRESENTATION SIMULATION STATE
@@ -154,7 +154,8 @@ function getBookingEndSlotString(startSlot, durasiHours) {
         '11.00': '12.00',
         '13.00': '14.00',
         '14.00': '15.00',
-        '15.00': '16.00'
+        '15.00': '16.00',
+        '16.00': '17.00'
     };
     return endMap[TIME_SLOTS[lastIndex]] || '';
 }
@@ -202,9 +203,9 @@ function isSlotInPast(dateStr, slotStr) {
     const slotEnd1h = getSlotEndDateTime(dateStr, slotStr, 1);
     if (!slotEnd1h) return false;
 
-    // Slot 11.00 (ends 12.00) and 15.00 (ends 16.00) are limited to 1 hour max.
-    // If remaining time is < 20 minutes before break/close (i.e. past 11.40 or 15.40), slot is in past.
-    if (slotStr === '11.00' || slotStr === '15.00') {
+    // Slot 11.00 (ends 12.00) and 16.00 (ends 17.00) are limited to 1 hour max.
+    // If remaining time is < 20 minutes before break/close (i.e. past 11.40 or 16.40), slot is in past.
+    if (slotStr === '11.00' || slotStr === '16.00') {
         const remainingMin = Math.floor((slotEnd1h.getTime() - now.getTime()) / 60000);
         return remainingMin < MIN_REMAINING_MINUTES;
     }
@@ -242,11 +243,16 @@ function checkAutoExpireBookings(notify = false) {
         if (b.status === 'Menunggu Kunci') {
             const startDateTime = getSlotDateTime(b.date, b.slot);
             if (startDateTime) {
-                const baseTime = b.createdAt ? Math.max(startDateTime.getTime(), new Date(b.createdAt).getTime()) : startDateTime.getTime();
-                const deadline = new Date(baseTime + GRACE_PERIOD_MS);
+                let deadline;
+                if (b.pickupDeadline) {
+                    deadline = new Date(b.pickupDeadline);
+                } else {
+                    const baseTime = b.createdAt ? Math.max(startDateTime.getTime(), new Date(b.createdAt).getTime()) : startDateTime.getTime();
+                    deadline = new Date(baseTime + GRACE_PERIOD_MS);
+                }
                 if (now > deadline) {
                     b.status = 'Gugur (>15m)';
-                    b.gugurReason = 'Otomatis gugur oleh sistem: Kunci tidak diambil dalam batas toleransi 15 menit.';
+                    b.gugurReason = b.gugurReason || 'Otomatis gugur oleh sistem: Kunci tidak diambil dalam batas toleransi 15 menit.';
                     b.gugurAt = now.toISOString();
                     changed = true;
                     expiredCount++;
@@ -304,11 +310,16 @@ function getBookings() {
         if (b.status === 'Menunggu Kunci') {
             const startDateTime = getSlotDateTime(b.date, b.slot);
             if (startDateTime) {
-                const baseTime = b.createdAt ? Math.max(startDateTime.getTime(), new Date(b.createdAt).getTime()) : startDateTime.getTime();
-                const deadline = new Date(baseTime + GRACE_PERIOD_MS);
+                let deadline;
+                if (b.pickupDeadline) {
+                    deadline = new Date(b.pickupDeadline);
+                } else {
+                    const baseTime = b.createdAt ? Math.max(startDateTime.getTime(), new Date(b.createdAt).getTime()) : startDateTime.getTime();
+                    deadline = new Date(baseTime + GRACE_PERIOD_MS);
+                }
                 if (now > deadline) {
                     b.status = 'Gugur (>15m)';
-                    b.gugurReason = 'Otomatis gugur oleh sistem: Kunci tidak diambil dalam batas toleransi 15 menit.';
+                    b.gugurReason = b.gugurReason || 'Otomatis gugur oleh sistem: Kunci tidak diambil dalam batas toleransi 15 menit.';
                     b.gugurAt = now.toISOString();
                     changed = true;
                 }
@@ -845,8 +856,9 @@ function renderMatrixGrid() {
                 const isBooked = activeBooking.status === 'Sedang Digunakan';
                 const isMine = (activeBooking.nim === CURRENT_USER.nim);
                 const cellClass = isBooked ? 'gantt-cell-booked' : 'gantt-cell-pending';
-                const label = isBooked ? 'Terpakai' : 'Dipesan';
-                const userTitle = isMine ? `Pesanan Anda (${activeBooking.status}) - Klik untuk kelola / batalkan` : `${label} oleh ${activeBooking.nama} (${activeBooking.slot} - ${activeBooking.durasi} Jam)`;
+                const userTitle = isMine 
+                    ? (activeBooking.status === 'Sedang Digunakan' ? `Pesanan Anda (${activeBooking.status}) - Kunci telah diserahkan` : `Pesanan Anda (${activeBooking.status}) - Klik untuk batalkan`) 
+                    : `${label} oleh ${activeBooking.nama} (${activeBooking.slot} - ${activeBooking.durasi} Jam)`;
                 const clickAttr = isMine ? `onclick="handleMyBookingClick('${activeBooking.id}')" style="cursor:pointer;"` : '';
                 const myTag = isMine && isStartSlot ? `<span class="badge" style="background:#0f2b48; color:#fff; font-size:0.68rem; padding:2px 5px; border-radius:3px; display:inline-block;"><i class="fa fa-user"></i> Anda</span>` : '&nbsp;';
 
@@ -939,6 +951,16 @@ function handleMyBookingClick(bookingId) {
     const bookings = getBookings();
     const target = bookings.find(b => b.id === bookingId);
     if (!target) return;
+
+    if (target.status === 'Sedang Digunakan') {
+        alert(`Detail Pemesanan Anda:\n\n` +
+            `• Kode: ${target.id}\n` +
+            `• Ruangan: ${target.roomName}\n` +
+            `• Jadwal: ${target.date}, Jam ${target.slot} (${target.durasi} Jam)\n` +
+            `• Status: Sedang Digunakan (Kunci Diserahkan)\n\n` +
+            `Kunci fisik ruangan telah diserahkan. Sesuai ketentuan, peminjaman aktif tidak dapat dibatalkan oleh mahasiswa.`);
+        return;
+    }
 
     const confirmMsg = `Detail Pemesanan Anda:\n\n` +
         `• Kode: ${target.id}\n` +
@@ -1107,13 +1129,13 @@ function validateTimeSlotConstraints() {
     const startIndex = TIME_SLOTS.indexOf(slot);
     const maxPossibleSlots = startIndex !== -1 ? (TIME_SLOTS.length - startIndex) : 1;
 
-    // Rule: 11.00 & 15.00 limit to 1 hour max
-    if (slot === '11.00' || slot === '15.00') {
+    // Rule: 11.00 & 16.00 limit to 1 hour max
+    if (slot === '11.00' || slot === '16.00') {
         if (durasiSelect.value !== '1') durasiSelect.value = '1';
         if (opt2) opt2.disabled = true;
         if (optST) optST.disabled = true;
-    } else if (slot === '14.00' || maxPossibleSlots < 3) {
-        // Slot 14.00 only has 2 slots left until 16.00 closing
+    } else if (slot === '15.00' || maxPossibleSlots < 3) {
+        // Slot 15.00 only has 2 slots left until 17.00 closing
         if (durasiSelect.value === 'surat_tugas' || durasiSelect.value === '3') {
             durasiSelect.value = '2';
         }
@@ -1157,15 +1179,16 @@ function validateTimeSlotConstraints() {
             // 1 Hour is NOT allowed because remaining time is less than 20 minutes
             if (opt1) opt1.disabled = true;
 
-            if (slot !== '11.00' && slot !== '15.00') {
+            if (slot !== '11.00' && slot !== '16.00') {
                 if (durasiSelect.value === '1') {
                     durasiSelect.value = '2';
                     durasi = 2;
                 }
-                const nowStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-                warningMessage = `Sisa waktu menuju jam 11.00 saat ini (${nowStr}) hanya ${rem1} menit (< 20 menit). Durasi 1 Jam tidak diperbolehkan. Durasi otomatis dialihkan ke 2 Jam (selesai tetap pukul 12.00, sisa waktu efektif ~${rem2} menit).`;
+                const nextHourStr = getBookingEndSlotString(slot, 1);
+                const finalHourStr = getBookingEndSlotString(slot, 2);
+                warningMessage = `Sisa waktu menuju jam ${nextHourStr} saat ini hanya ${rem1} menit (< 20 menit). Durasi 1 Jam tidak diperbolehkan. Durasi otomatis dialihkan ke 2 Jam (selesai pukul ${finalHourStr}, sisa waktu efektif ~${rem2} menit).`;
             } else {
-                errorMessage = `Sisa waktu untuk slot jam ${slot} hanya tersisa ${rem1} menit (< 20 menit) sebelum jam ${slot === '11.00' ? 'istirahat (12.00)' : 'tutup (16.00)'}. Pemesanan tidak dapat dilakukan.`;
+                errorMessage = `Sisa waktu untuk slot jam ${slot} hanya tersisa ${rem1} menit (< 20 menit) sebelum jam ${slot === '11.00' ? 'istirahat (12.00)' : 'tutup (17.00)'}. Pemesanan tidak dapat dilakukan.`;
             }
         } else {
             const endHourStr = getBookingEndSlotString(slot, durasi);
@@ -1209,10 +1232,10 @@ function validateTimeSlotConstraints() {
     if (!errorMessage) {
         if (slot === '11.00') {
             warningMessage = 'Catatan: Pada slot jam 11.00, durasi maksimal hanya 1 jam karena pukul 12.00 - 13.00 adalah jam istirahat dan sterilisasi ruangan.';
+        } else if (slot === '16.00') {
+            warningMessage = 'Catatan: Pada slot jam 16.00, durasi maksimal hanya 1 jam karena ruang diskusi tutup pada pukul 17.00.';
         } else if (slot === '15.00') {
-            warningMessage = 'Catatan: Pada slot jam 15.00, durasi maksimal hanya 1 jam karena ruang diskusi tutup pada pukul 16.00.';
-        } else if (slot === '14.00') {
-            warningMessage = 'Catatan: Pada slot jam 14.00, peminjaman Surat Tugas (> 2 jam) tidak tersedia karena ruang diskusi tutup pukul 16.00.';
+            warningMessage = 'Catatan: Pada slot jam 15.00, peminjaman Surat Tugas (> 2 jam) tidak tersedia karena ruang diskusi tutup pukul 17.00.';
         } else if (isST) {
             const endStr = getBookingEndSlotString(slot, durasi);
             warningMessage = `Peminjaman Surat Tugas (${durasi} Jam): Selesai dijadwalkan pukul ${endStr}. Pastikan Anda melampirkan berkas Surat Tugas yang sah.`;
@@ -1470,6 +1493,12 @@ async function handleFormSubmit(e) {
         return;
     }
 
+    const now = getSystemNow();
+    const startDateTime = getSlotDateTime(filterDate, slot);
+    const isOngoing = (filterDate === getTodayDateString() && startDateTime && now >= startDateTime);
+    const baseTime = isOngoing ? now.getTime() : (startDateTime ? startDateTime.getTime() : now.getTime());
+    const deadline = new Date(baseTime + 15 * 60 * 1000);
+
     const newBooking = {
         id: 'BK-' + Math.floor(1000 + Math.random() * 9000),
         nama: CURRENT_USER.nama,
@@ -1488,15 +1517,23 @@ async function handleFormSubmit(e) {
         keperluan: keperluan,
         status: 'Menunggu Kunci',
         ktmVerified: false,
-        createdAt: new Date().toISOString()
+        createdAt: now.toISOString(),
+        pickupDeadline: deadline.toISOString(),
+        isOngoingBooking: isOngoing
     };
 
     bookings.push(newBooking);
     saveBookings(bookings);
 
-    const successMsg = isSuratTugas
-        ? `🎉 Pemesanan Berhasil dengan Surat Tugas (${durasi} Jam)!\nBerkas surat tugas telah tersimpan. Silakan ambil kunci di Resepsionis Lt. 1 dengan menyerahkan KTM 5 menit sebelum jam ${slot}.`
-        : `🎉 Pemesanan Berhasil! Silakan ambil kunci di Resepsionis Lt. 1 dengan menyerahkan KTM 5 menit sebelum jam ${slot}.`;
+    const deadlineStr = deadline.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace(':', '.');
+    let successMsg;
+    if (isOngoing) {
+        successMsg = `🎉 Pemesanan Sisa Jam Berhasil!\n\nRuangan: ${room.name}\nJadwal: Jam ${slot} (${durasi} Jam)\nBatas Waktu Pengambilan Kunci: Pukul ${deadlineStr} WIB (15 menit dari sekarang).\n\nHarap segera mengambil kunci fisik di Resepsionis Lt. 1 dengan menyerahkan KTM sebelum batas waktu tersebut agar pemesanan tidak gugur otomatis.`;
+    } else if (isSuratTugas) {
+        successMsg = `🎉 Pemesanan Berhasil dengan Surat Tugas (${durasi} Jam)!\nBerkas surat tugas telah tersimpan. Silakan ambil kunci di Resepsionis Lt. 1 dengan menyerahkan KTM paling lambat 15 menit setelah jadwal dimulai (sebelum ${deadlineStr} WIB).`;
+    } else {
+        successMsg = `🎉 Pemesanan Berhasil!\nSilakan ambil kunci di Resepsionis Lt. 1 dengan menyerahkan KTM paling lambat 15 menit setelah jadwal dimulai (sebelum ${deadlineStr} WIB).`;
+    }
 
     alert(successMsg);
 
@@ -1539,9 +1576,8 @@ function renderMyBookings() {
             badgeClass = 'badge-warning';
             const startDateTime = getSlotDateTime(b.date, b.slot);
             if (startDateTime) {
-                const baseTime = b.createdAt ? Math.max(startDateTime.getTime(), new Date(b.createdAt).getTime()) : startDateTime.getTime();
-                const deadline = new Date(baseTime + GRACE_PERIOD_MS);
-                if (now >= new Date(baseTime) && now <= deadline) {
+                const deadline = b.pickupDeadline ? new Date(b.pickupDeadline) : new Date((b.createdAt ? Math.max(startDateTime.getTime(), new Date(b.createdAt).getTime()) : startDateTime.getTime()) + GRACE_PERIOD_MS);
+                if (now <= deadline) {
                     const remainingMin = Math.max(1, Math.ceil((deadline - now) / 60000));
                     statusSubtext = `<br><small style="color:#b58105; font-weight:600;"><i class="fa fa-stopwatch"></i> Ambil kunci s.d ${deadline.toTimeString().substring(0, 5)} (sisa ${remainingMin}m)</small>`;
                 } else if (now < startDateTime) {
@@ -1555,7 +1591,8 @@ function renderMyBookings() {
             badgeClass = 'badge-info';
         } else if (b.status === 'Gugur (>15m)') {
             badgeClass = 'badge-danger';
-            statusSubtext = `<br><small style="color:#dc3545;">Gugur: kunci tidak diambil >15 menit</small>`;
+            const reasonText = b.gugurReason ? b.gugurReason : 'Kunci tidak diambil >15 menit';
+            statusSubtext = `<br><small style="color:#dc3545;"><i class="fa fa-ban"></i> ${reasonText}</small>`;
         } else if (b.status === 'Dibatalkan') {
             badgeClass = 'badge-danger';
             if (b.cancelledAt) {
@@ -1565,10 +1602,12 @@ function renderMyBookings() {
         }
 
         let cancelBtn = '<span style="color:#adb5bd; font-size:0.85rem;">-</span>';
-        if (['Menunggu Kunci', 'Sedang Digunakan'].includes(b.status)) {
+        if (b.status === 'Menunggu Kunci') {
             cancelBtn = `<button type="button" class="btn btn-danger btn-sm" onclick="cancelBooking('${b.id}')" title="Batalkan Peminjaman Ruangan">
                             <i class="fa fa-times"></i> Batalkan
                          </button>`;
+        } else if (b.status === 'Sedang Digunakan') {
+            cancelBtn = `<span class="badge badge-info" style="font-size:0.72rem; padding:4px 8px; border-radius:4px;"><i class="fa fa-lock"></i> Kunci Diserahkan</span>`;
         }
 
         let durasiCol = `${b.durasi} Jam`;
@@ -1599,6 +1638,11 @@ function cancelBooking(bookingId) {
         return;
     }
 
+    if (target.status === 'Sedang Digunakan') {
+        alert('Peringatan: Kunci fisik ruangan ini telah diserahkan (Sesi Sedang Digunakan).\n\nSesuai ketentuan, mahasiswa tidak dapat membatalkan peminjaman setelah kunci diserahkan. Silakan gunakan ruangan hingga selesai atau hubungi petugas resepsionis di Lt. 1 untuk pengembalian kunci.');
+        return;
+    }
+
     const confirmMsg = `Konfirmasi Pembatalan Peminjaman:\n\n` +
         `• Kode Booking: ${target.id}\n` +
         `• Ruangan: ${target.roomName}\n` +
@@ -1609,7 +1653,7 @@ function cancelBooking(bookingId) {
     if (!confirm(confirmMsg)) return;
 
     target.status = 'Dibatalkan';
-    target.cancelledAt = new Date().toISOString();
+    target.cancelledAt = getSystemNow().toISOString();
     saveBookings(bookings);
     if (typeof stopExpiredChimeLoop === 'function') stopExpiredChimeLoop();
     triggerAllUIRenders();
@@ -1835,21 +1879,89 @@ function adminReturnKey(bookingId) {
 }
 
 function adminMarkGugur(bookingId) {
-    if (!confirm('Gugurkan peminjaman ini karena pemesan terlambat hadir >15 menit dari jadwal?')) return;
-
     const bookings = getBookings();
     const target = bookings.find(b => b.id === bookingId);
-    if (target) {
-        target.status = 'Gugur (>15m)';
-        target.gugurReason = 'Digugurkan manual oleh petugas resepsionis (terlambat >15 menit).';
-        target.gugurAt = getSystemNow().toISOString();
-        saveBookings(bookings);
-        renderAdminTable();
-        renderAdminRoomGrid();
-        if (typeof updateActiveSessionBanner === 'function') updateActiveSessionBanner();
-        alert(`Peminjaman ${target.id} digugurkan. Ruangan langsung dialihkan menjadi tersedia.`);
+    if (!target) {
+        alert('Data peminjaman tidak ditemukan.');
+        return;
+    }
+
+    const modal = document.getElementById('modal-mark-gugur');
+    if (!modal) {
+        const customReason = prompt(`Konfirmasi Gugurkan Peminjaman:\n\nRuangan: ${target.roomName}\nJadwal: ${target.date} (Jam ${target.slot})\nPemesan: ${target.nama}\n\nMasukkan alasan mengapa peminjaman ini digugurkan:`, 'Terlambat hadir >15 menit dari jadwal / batas toleransi.');
+        if (customReason === null) return;
+        const finalReason = customReason.trim() || 'Terlambat hadir >15 menit dari jadwal / batas toleransi.';
+        executeAdminGugur(target.id, finalReason);
+        return;
+    }
+
+    const idInput = document.getElementById('gugur-booking-id');
+    const infoEl = document.getElementById('gugur-booking-info');
+    const reasonText = document.getElementById('gugur-reason-text');
+    const presetSelect = document.getElementById('gugur-preset-select');
+
+    if (idInput) idInput.value = target.id;
+    if (infoEl) {
+        infoEl.innerHTML = `
+            <div style="font-weight:700; color:#0f2b48; margin-bottom:4px;"><i class="fa fa-door-open"></i> ${target.roomName} (ID: ${target.id})</div>
+            <div><strong>Jadwal:</strong> ${target.date}, Pukul ${target.slot} (${target.durasi} Jam)</div>
+            <div><strong>Pemesan:</strong> ${target.nama} (${target.nim || '-'}) | Kelas: ${target.kelas || '-'}</div>
+            <div style="color:#64748b; font-size:0.75rem; margin-top:4px;"><i class="fa fa-info-circle"></i> Setelah digugurkan, ruangan langsung dialihkan menjadi kosong / dapat dipesan peminjam lain.</div>
+        `;
+    }
+
+    const defaultReason = 'Terlambat hadir >15 menit dari jadwal / batas toleransi.';
+    if (presetSelect) presetSelect.value = defaultReason;
+    if (reasonText) reasonText.value = defaultReason;
+
+    modal.classList.remove('hidden');
+}
+window.adminMarkGugur = adminMarkGugur;
+
+function handleGugurPresetChange(val) {
+    const reasonText = document.getElementById('gugur-reason-text');
+    if (!reasonText) return;
+    if (val === 'custom') {
+        reasonText.value = '';
+        reasonText.focus();
+    } else {
+        reasonText.value = val;
     }
 }
+window.handleGugurPresetChange = handleGugurPresetChange;
+
+function confirmSubmitAdminGugur() {
+    const idInput = document.getElementById('gugur-booking-id');
+    const reasonText = document.getElementById('gugur-reason-text');
+    const bookingId = idInput?.value;
+    const reason = (reasonText?.value || '').trim();
+
+    if (!reason) {
+        alert('Harap tuliskan alasan mengapa pemesanan ini digugurkan.');
+        if (reasonText) reasonText.focus();
+        return;
+    }
+
+    executeAdminGugur(bookingId, reason);
+    if (typeof closeModal === 'function') closeModal('modal-mark-gugur');
+}
+window.confirmSubmitAdminGugur = confirmSubmitAdminGugur;
+
+function executeAdminGugur(bookingId, reason) {
+    const bookings = getBookings();
+    const target = bookings.find(b => b.id === bookingId);
+    if (!target) return;
+
+    target.status = 'Gugur (>15m)';
+    target.gugurReason = reason;
+    target.gugurAt = getSystemNow().toISOString();
+    saveBookings(bookings);
+    renderAdminTable();
+    renderAdminRoomGrid();
+    if (typeof updateActiveSessionBanner === 'function') updateActiveSessionBanner();
+    alert(`Peminjaman ${target.id} (${target.roomName}) berhasil digugurkan.\nAlasan: "${reason}"\n\nRuangan langsung dialihkan menjadi tersedia.`);
+}
+window.executeAdminGugur = executeAdminGugur;
 
 function renderAdminRoomGrid() {
     const gridContainer = document.getElementById('admin-room-grid');
@@ -2302,7 +2414,7 @@ function updateActiveSessionBanner() {
     // Ensure scheduledEndAt is present
     if (!active.scheduledEndAt) {
         const endDt = getSlotEndDateTime(active.date, active.slot, active.durasi);
-        active.scheduledEndAt = endDt ? endDt.toISOString() : new Date().toISOString();
+        active.scheduledEndAt = endDt ? endDt.toISOString() : getSystemNow().toISOString();
         saveBookings(bookings);
     }
 
@@ -2325,12 +2437,7 @@ function updateActiveSessionBanner() {
 
     const cancelBtn = document.getElementById('btn-active-cancel');
     if (cancelBtn) {
-        if (active.nim === CURRENT_USER.nim) {
-            cancelBtn.classList.remove('hidden');
-            cancelBtn.onclick = () => cancelBooking(active.id);
-        } else {
-            cancelBtn.classList.add('hidden');
-        }
+        cancelBtn.classList.add('hidden');
     }
 
     if (remainingMs > 5 * 60 * 1000) {
