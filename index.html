@@ -35,8 +35,8 @@
                     <img src="https://portal.pknstan.ac.id/upload/avatar/user.jpg" alt="Foto Profil Mahasiswa"
                         onerror="this.src='https://ui-avatars.com/api/?name=Civitas+STAN&background=38bdf8&color=fff'">
                     <div class="user-info-text">
-                        <div class="name" id="user-display-name">VERI GALIH SETIYO AJI</div>
-                        <div class="email" id="user-display-email">galih_4131230098@pknstan.ac.id</div>
+                        <div class="name" id="user-display-name">Ahmad Fauzi Rahman</div>
+                        <div class="email" id="user-display-email">fauzi_2301100101@pknstan.ac.id</div>
                     </div>
                     <button class="btn btn-outline-danger btn-sm" onclick="handleStudentLogout()" title="Keluar dari Portal" style="margin-left:8px; padding:4px 8px; font-size:0.75rem; border-color:#cbd5e1; color:#64748b; background:transparent; border-radius:4px; cursor:pointer;">
                         <i class="fa fa-sign-out-alt"></i> Logout
@@ -136,12 +136,6 @@
                         </button>
                         <button id="btn-active-cancel" class="btn btn-outline-danger btn-sm hidden" onclick="cancelActiveSession()" title="Batalkan Peminjaman Sesi Ini">
                             <i class="fa fa-times"></i> Batalkan Sesi
-                        </button>
-                        <button class="btn btn-warning btn-sm" onclick="simulate5mWarning()" title="Simulasi Pengujian: Sisa 5 Menit">
-                            <i class="fa fa-vial"></i> Tes 5m
-                        </button>
-                        <button class="btn btn-danger btn-sm" onclick="simulateEndWarning()" title="Simulasi Pengujian: Waktu Habis">
-                            <i class="fa fa-vial"></i> Tes Habis
                         </button>
                     </div>
                 </div>
@@ -630,6 +624,36 @@
             <div class="modal-footer" style="padding:12px 16px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:10px;">
                 <a id="btn-download-doc" href="#" download class="btn btn-outline-secondary btn-sm" style="font-weight:600;"><i class="fa fa-download"></i> Unduh Berkas</a>
                 <button type="button" class="btn btn-primary btn-sm" onclick="closeModal('modal-doc-preview')">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Pesan / Notifikasi dari Petugas Resepsionis -->
+    <div id="modal-admin-notification" class="modal-backdrop hidden">
+        <div class="modal-content" style="max-width: 520px; border-top: 4px solid #f59e0b; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="background:#fffbeb; border-bottom:1px solid #fef3c7; display:flex; justify-content:space-between; align-items:center;">
+                <h5 style="margin:0; font-size:1.05rem; font-weight:700; color:#92400e; display:flex; align-items:center; gap:8px;">
+                    <i class="fa fa-bell" style="color:#d97706;"></i> 
+                    <span>Pemberitahuan Petugas Resepsionis</span>
+                </h5>
+                <button type="button" class="modal-close" onclick="closeModal('modal-admin-notification')">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; font-size:0.8rem; color:#64748b;">
+                    <span class="badge" style="background:#0f2b48; color:#fff; font-size:0.75rem; padding:3px 8px; border-radius:4px;"><i class="fa fa-user-shield"></i> Resepsionis Gedung P</span>
+                    <span id="admin-notif-time">-</span>
+                </div>
+                <div id="admin-notif-title" style="font-size:1.05rem; font-weight:700; color:#1e293b; margin-bottom:8px;">
+                    Pesan Penting
+                </div>
+                <div id="admin-notif-message" style="background:#f8fafc; border-left:4px solid #0284c7; border-radius:4px; padding:14px; color:#334155; font-size:0.92rem; line-height:1.5; white-space: pre-line;">
+                    -
+                </div>
+            </div>
+            <div class="modal-footer" style="padding:12px 16px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end;">
+                <button type="button" class="btn btn-primary" onclick="closeModal('modal-admin-notification')" style="font-weight:600; padding:8px 18px;">
+                    <i class="fa fa-check"></i> Saya Mengerti
+                </button>
             </div>
         </div>
     </div>

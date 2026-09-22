@@ -70,11 +70,11 @@ function readBookings() {
                 },
                 {
                     id: 'BK-2344',
-                    nama: 'VERI GALIH SETIYO AJI',
-                    nim: '4131230098',
-                    prodi: 'Sarjana Terapan Akuntansi Sektor Publik',
-                    kelas: '6 Sisfo 5',
-                    hp: '081234567890',
+                    nama: 'Bagas Aditya Pratama',
+                    nim: '2301100103',
+                    prodi: 'D III Kebendaharaan Negara',
+                    kelas: '3-02',
+                    hp: '081211110003',
                     roomId: 'RD-03',
                     roomName: 'Ruang Diskusi 3',
                     date: getTodayDateString(),
@@ -242,6 +242,33 @@ app.post('/api/bookings', (req, res) => {
     }
 });
 
+// Active notifications store
+let activeNotifications = [];
+
+app.get('/api/notifications', (req, res) => {
+    res.json(activeNotifications);
+});
+
+app.post('/api/notifications', (req, res) => {
+    const { targetNim, targetBookingId, title, message, sender } = req.body;
+    if (!message) {
+        return res.status(400).json({ error: 'Pesan notifikasi tidak boleh kosong' });
+    }
+    const notif = {
+        id: 'NTF-' + Date.now(),
+        targetNim: targetNim || 'all',
+        targetBookingId: targetBookingId || null,
+        title: title || 'Pemberitahuan Petugas Resepsionis',
+        message: message,
+        sender: sender || 'Petugas Resepsionis Lt. 1',
+        createdAt: getSystemNow().toISOString()
+    };
+    activeNotifications.unshift(notif);
+    if (activeNotifications.length > 50) activeNotifications.pop();
+    io.emit('student:notification_received', notif);
+    return res.json({ success: true, notification: notif });
+});
+
 // Static files
 app.use('/adminrudis', express.static(path.join(__dirname, 'adminrudis')));
 app.use(express.static(path.join(__dirname)));
@@ -294,6 +321,24 @@ io.on('connection', (socket) => {
             // Also confirm back
             socket.emit('bookings:sync', newBookings);
         }
+    });
+
+    // Listen for admin sending notifications
+    socket.on('admin:send_notification', (data) => {
+        if (!data || !data.message) return;
+        const notif = {
+            id: 'NTF-' + Date.now(),
+            targetNim: data.targetNim || 'all',
+            targetBookingId: data.targetBookingId || null,
+            title: data.title || 'Pemberitahuan Petugas Resepsionis',
+            message: data.message,
+            sender: data.sender || 'Petugas Resepsionis Lt. 1',
+            createdAt: getSystemNow().toISOString()
+        };
+        activeNotifications.unshift(notif);
+        if (activeNotifications.length > 50) activeNotifications.pop();
+        io.emit('student:notification_received', notif);
+        console.log(`[Notification] Broadcast notifikasi dari admin ke target: ${notif.targetNim}`);
     });
 
     socket.on('disconnect', () => {

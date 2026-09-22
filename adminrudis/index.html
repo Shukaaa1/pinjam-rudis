@@ -180,7 +180,10 @@
                 <div class="card" style="margin-top:1.5rem;">
                     <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                         <span><i class="fa fa-tasks"></i> Daftar Permohonan & Aktivitas Ruang Diskusi</span>
-                        <div style="display:flex; gap:10px; align-items:center;">
+                        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="openBroadcastNotifyModal()" style="font-weight:600; font-size:0.85rem; padding:6px 12px; white-space:nowrap;">
+                                <i class="fa fa-bullhorn"></i> Kirim Pengumuman ke Mahasiswa
+                            </button>
                             <input type="text" id="admin-search" class="form-control" placeholder="Cari Nama / NIM / Ruangan..." style="width:260px;" onkeyup="renderAdminTable()">
                         </div>
                     </div>
@@ -337,8 +340,83 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Kartu Pengujian Notifikasi & Sisa Waktu (Tes 5m & Tes Habis) -->
+                <div class="card" style="margin-top:20px; border-left:4px solid #ef4444;">
+                    <div class="card-header" style="background:#fef2f2; display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-weight:700; color:#991b1b;"><i class="fa fa-vial" style="color:#ef4444;"></i> Pengujian Alarm & Peringatan Mahasiswa (Instan)</span>
+                        <span style="font-size:0.75rem; color:#b91c1c;">Pengujian Langsung ke Sesi Aktif</span>
+                    </div>
+                    <div class="card-body">
+                        <p style="font-size:0.85rem; color:#64748b; margin-bottom:12px;">
+                            Gunakan tombol di bawah ini untuk menguji reaksi visual dan suara bel pada portal mahasiswa secara langsung tanpa menunggu waktu berjalan normal:
+                        </p>
+                        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                            <button type="button" class="btn btn-warning" onclick="adminTrigger5mSimulation()" style="font-weight:600; font-size:0.88rem; padding:8px 16px;">
+                                <i class="fa fa-hourglass-half"></i> Uji Peringatan Sisa 5 Menit (Tes 5m)
+                            </button>
+                            <button type="button" class="btn btn-danger" onclick="adminTriggerEndSimulation()" style="font-weight:600; font-size:0.88rem; padding:8px 16px;">
+                                <i class="fa fa-bell"></i> Uji Waktu Habis & Alarm Berulang (Tes Habis)
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
+    </div>
+
+    <!-- Modal Kirim Notifikasi ke Mahasiswa -->
+    <div id="modal-send-student-notification" class="modal-backdrop hidden">
+        <div class="modal-content" style="max-width: 560px; border-top: 4px solid #0f2b48;">
+            <div class="modal-header" style="background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
+                <h5 style="margin:0; font-size:1.05rem; font-weight:700; color:#0f2b48; display:flex; align-items:center; gap:8px;">
+                    <i class="fa fa-paper-plane" style="color:#0284c7;"></i> Kirim Notifikasi ke Mahasiswa
+                </h5>
+                <button type="button" class="modal-close" onclick="closeModal('modal-send-student-notification')">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 18px 20px;">
+                <input type="hidden" id="admin-notif-target-nim" value="all">
+                <input type="hidden" id="admin-notif-target-booking-id" value="">
+
+                <div id="admin-notif-target-info" style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:10px 14px; margin-bottom:14px; font-size:0.88rem; color:#1e40af;">
+                    <i class="fa fa-bullhorn"></i> <strong>Target:</strong> Seluruh Mahasiswa yang aktif di Portal
+                </div>
+
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label style="font-weight:600; font-size:0.85rem; color:#334155; margin-bottom:6px; display:block;">Pilih Template Pesan Resepsionis:</label>
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="applyNotificationTemplate('kunci')" style="text-align:left; font-size:0.82rem; padding:6px 10px;">
+                            🔑 <strong>Peringatan Pengambilan Kunci</strong>: Batas toleransi hampir habis
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="applyNotificationTemplate('sisa10')" style="text-align:left; font-size:0.82rem; padding:6px 10px;">
+                            ⏳ <strong>Pengingat Sisa Waktu</strong>: Waktu pemakaian tersisa 10 menit
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="applyNotificationTemplate('habis')" style="text-align:left; font-size:0.82rem; padding:6px 10px;">
+                            🔔 <strong>Waktu Selesai</strong>: Harap segera mengosongkan ruangan & mengembalikan kunci
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="applyNotificationTemplate('panggilan')" style="text-align:left; font-size:0.82rem; padding:6px 10px;">
+                            📢 <strong>Panggilan Petugas</strong>: Harap perwakilan peminjam menemui resepsionis Lt. 1
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label style="font-weight:600; font-size:0.85rem; color:#334155; margin-bottom:6px; display:block;">Judul Pesan:</label>
+                    <input type="text" id="admin-notif-input-title" class="form-control" value="Pemberitahuan dari Resepsionis Perpustakaan" required style="font-size:0.88rem;">
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-weight:600; font-size:0.85rem; color:#334155; margin-bottom:6px; display:block;">Isi Pesan / Catatan:</label>
+                    <textarea id="admin-notif-input-message" class="form-control" rows="3" placeholder="Ketik pesan yang akan ditampilkan di layar mahasiswa..." required style="font-size:0.88rem;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer" style="padding:12px 20px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:10px;">
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="closeModal('modal-send-student-notification')">Batal</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="submitAdminNotification()" style="font-weight:600; padding:6px 16px;">
+                    <i class="fa fa-paper-plane"></i> Kirim Sekarang
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Modal Pratinjau Surat Tugas untuk Petugas Resepsionis -->

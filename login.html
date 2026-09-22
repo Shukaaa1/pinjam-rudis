@@ -332,7 +332,7 @@
             <form id="auth-form" onsubmit="handleLoginSubmit(event)">
                 <div class="form-group">
                     <label for="username">NIM / Username</label>
-                    <input type="text" id="username" class="form-control" placeholder="Masukkan NIM Anda" value="4131230098" required autocomplete="username">
+                    <input type="text" id="username" class="form-control" placeholder="Masukkan NIM Anda" value="2301100101" required autocomplete="username">
                 </div>
 
                 <div class="form-group">
@@ -351,9 +351,8 @@
 
             <!-- Quick Selector Akun Dummy (Mahasiswa 1 s.d. 23) -->
             <div class="demo-selector-box">
-                <p><i class="fa fa-users"></i> Uji Akun Mahasiswa (Dummy 1 - 23):</p>
+                <p><i class="fa fa-users"></i> Pilih Akun Mahasiswa (Dummy 1 - 23):</p>
                 <select id="quick-student-select" class="demo-select" onchange="handleStudentSelect(this.value)">
-                    <option value="4131230098">Akun Utama: VERI GALIH SETIYO AJI (NIM 4131230098)</option>
                     <!-- Populated via JS -->
                 </select>
             </div>
@@ -371,7 +370,8 @@
         document.addEventListener('DOMContentLoaded', () => {
             const select = document.getElementById('quick-student-select');
             if (typeof DUMMY_STUDENTS !== 'undefined' && select) {
-                DUMMY_STUDENTS.slice(1).forEach(s => {
+                select.innerHTML = '<option value="">-- Pilih Akun Mahasiswa Demo --</option>';
+                DUMMY_STUDENTS.forEach(s => {
                     const opt = document.createElement('option');
                     opt.value = s.nim;
                     opt.textContent = `${s.username}: ${s.nama} (${s.nim} - ${s.prodi})`;

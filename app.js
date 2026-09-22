@@ -63,12 +63,12 @@ function getSlotDateTime(dateStr, slotStr) {
 
 // User Logged In Mock Data (Dynamically updated from login session)
 let CURRENT_USER = {
-    nama: 'VERI GALIH SETIYO AJI',
-    nim: '4131230098',
-    email: 'galih_4131230098@pknstan.ac.id',
-    prodi: 'Sarjana Terapan Akuntansi Sektor Publik',
-    kelas: '6 Sisfo 5',
-    hp: '081234567890'
+    nama: 'Ahmad Fauzi Rahman',
+    nim: '2301100101',
+    email: 'fauzi_2301100101@pknstan.ac.id',
+    prodi: 'D III Pajak',
+    kelas: '3-01',
+    hp: '081211110001'
 };
 
 function initCurrentUser() {
@@ -86,11 +86,11 @@ initCurrentUser();
 const SEED_BOOKINGS = [
     {
         id: 'BK-1001',
-        nama: 'Ahmad Fauzi',
-        nim: '2301100234',
+        nama: 'Ahmad Fauzi Rahman',
+        nim: '2301100101',
         prodi: 'D III Pajak',
-        kelas: '3-02',
-        hp: '081987654321',
+        kelas: '3-01',
+        hp: '081211110001',
         roomId: 'RD-01',
         roomName: 'Ruang Diskusi 1',
         date: getTodayDateString(),
@@ -122,11 +122,11 @@ const SEED_BOOKINGS = [
     },
     {
         id: 'BK-2344',
-        nama: 'VERI GALIH SETIYO AJI',
-        nim: '4131230098',
-        prodi: 'Sarjana Terapan Akuntansi Sektor Publik',
-        kelas: '6 Sisfo 5',
-        hp: '081234567890',
+        nama: 'Bagas Aditya Pratama',
+        nim: '2301100103',
+        prodi: 'D III Kebendaharaan Negara',
+        kelas: '3-02',
+        hp: '081211110003',
         roomId: 'RD-03',
         roomName: 'Ruang Diskusi 3',
         date: getTodayDateString(),
@@ -352,6 +352,30 @@ if (typeof io !== 'undefined') {
             SYSTEM_TIME.setAt = Date.now();
             updateSimulationUIState();
             triggerAllUIRenders();
+        }
+    });
+
+    // Realtime Notification from Admin to Student
+    socket.on('student:notification_received', (notif) => {
+        if (!notif) return;
+        const isForMe = (notif.targetNim === 'all' || notif.targetNim === CURRENT_USER.nim);
+        if (!isForMe) return;
+
+        playChimeSound('warning');
+        sendSystemNotification(notif.title, notif.message);
+
+        const modal = document.getElementById('modal-admin-notification');
+        if (modal) {
+            const titleEl = document.getElementById('admin-notif-title');
+            const msgEl = document.getElementById('admin-notif-message');
+            const timeEl = document.getElementById('admin-notif-time');
+            if (titleEl) titleEl.textContent = notif.title;
+            if (msgEl) msgEl.textContent = notif.message;
+            if (timeEl) {
+                const dt = notif.createdAt ? new Date(notif.createdAt) : getSystemNow();
+                timeEl.textContent = dt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+            }
+            modal.classList.remove('hidden');
         }
     });
 }
@@ -1692,13 +1716,18 @@ function renderAdminTable() {
             roomCellHtml += `<br><button type="button" class="btn btn-outline-info btn-sm" style="padding:2px 8px; font-size:0.75rem; margin-top:4px;" onclick="viewSuratTugas('${b.id}')" title="Lihat Berkas Surat Tugas / Nota Dinas"><i class="fa fa-file-alt"></i> Berkas ST</button>`;
         }
 
+        const notifyBtn = `<button class="btn btn-outline-info btn-sm" onclick="openNotifyModal('${b.id}')" title="Kirim Notifikasi / Pengingat ke Mahasiswa ini" style="padding:4px 8px; font-size:0.75rem;"><i class="fa fa-bell"></i> Notifikasi</button>`;
+        const fullActionBtns = actionBtns 
+            ? `<div style="display:flex; flex-direction:column; gap:4px; align-items:center;">${actionBtns}${notifyBtn}</div>`
+            : notifyBtn;
+
         html += `<tr>
                     <td><strong>${b.id}</strong></td>
                     <td><strong>${b.nama}</strong><br><small style="color:#6c757d;">NIM: ${b.nim} | HP: ${b.hp}</small></td>
                     <td>${b.prodi}<br><small style="color:#6c757d;">Kelas: ${b.kelas}</small></td>
                     <td>${roomCellHtml}</td>
                     <td>${statusBadge}</td>
-                    <td style="text-align:center;">${actionBtns}</td>
+                    <td style="text-align:center;">${fullActionBtns}</td>
                  </tr>`;
     });
 
@@ -2051,9 +2080,8 @@ function updateActiveSessionBanner() {
     if (!widget) return;
 
     const bookings = getBookings();
-    // Prioritize current user's active booking, fallback to any active booking for demo
-    const active = bookings.find(b => b.nim === CURRENT_USER.nim && b.status === 'Sedang Digunakan')
-        || bookings.find(b => b.status === 'Sedang Digunakan');
+    // Strictly filter active booking for the current logged-in student only
+    const active = bookings.find(b => b.nim === CURRENT_USER.nim && b.status === 'Sedang Digunakan');
 
     if (!active) {
         widget.classList.add('hidden');
@@ -2178,54 +2206,199 @@ function updateActiveSessionBanner() {
                 startExpiredChimeLoop();
             }
 
-            // Periodic browser notification reminder every 60 seconds while expired
+            // Periodic browser notification reminder & repeat chime every 15 seconds while expired
             const nowTs = Date.now();
-            if (nowTs - lastBrowserNotifTime > 60000) {
-                sendSystemNotification('Waktu Peminjaman Lewat', `Waktu ${active.roomName} telah lewat. Mohon segera serahkan kunci ke resepsionis.`);
+            if (nowTs - lastBrowserNotifTime > 15000) {
+                sendSystemNotification('WAKTU PEMINJAMAN HABIS!', `Pemberitahuan Berulang: Waktu pemakaian ${active.roomName} telah habis. Segera rapikan ruangan dan kembalikan kunci fisik ke resepsionis Lt. 1.`);
+                if (!isAlarmMuted && soundEnabled) {
+                    playChimeSound('urgent');
+                }
                 lastBrowserNotifTime = nowTs;
             }
         }
     }
 }
 
-// Simulation helpers for instant user testing
-function simulate5mWarning() {
-    const bookings = getBookings();
-    const active = bookings.find(b => b.nim === CURRENT_USER.nim && b.status === 'Sedang Digunakan')
-        || bookings.find(b => b.status === 'Sedang Digunakan');
-    if (!active) {
-        alert('Tidak ada sesi aktif. Pastikan ada peminjaman berstatus "Sedang Digunakan".');
-        return;
-    }
-    const now = getSystemNow();
-    active.scheduledEndAt = new Date(now.getTime() + (4 * 60 + 55) * 1000).toISOString();
-    active.warned5m = false; // Reset flag to trigger
-    saveBookings(bookings);
-    updateActiveSessionBanner();
-}
+// ==========================================
+// ADMIN SIMULATION & NOTIFICATION HANDLERS
+// ==========================================
 
-function simulateEndWarning() {
+// Trigger 5-Minute Warning Simulation from Admin Panel
+function adminTrigger5mSimulation() {
     const bookings = getBookings();
-    const active = bookings.find(b => b.nim === CURRENT_USER.nim && b.status === 'Sedang Digunakan')
-        || bookings.find(b => b.status === 'Sedang Digunakan');
-    if (!active) {
-        alert('Tidak ada sesi aktif. Pastikan ada peminjaman berstatus "Sedang Digunakan".');
+    let target = bookings.find(b => b.status === 'Sedang Digunakan');
+    if (!target) {
+        target = bookings.find(b => b.status === 'Menunggu Kunci');
+        if (target) {
+            target.status = 'Sedang Digunakan';
+            target.ktmVerified = true;
+            target.startedAt = getSystemNow().toISOString();
+        }
+    }
+    if (!target) {
+        alert('Tidak ada data peminjaman untuk diuji. Silakan buat pemesanan terlebih dahulu di portal mahasiswa.');
         return;
     }
     const now = getSystemNow();
-    active.scheduledEndAt = new Date(now.getTime() - 2000).toISOString();
-    active.warnedEnd = false; // Reset flag to trigger
-    isAlarmMuted = false;
-    stopExpiredChimeLoop();
+    target.scheduledEndAt = new Date(now.getTime() + (4 * 60 + 55) * 1000).toISOString();
+    target.warned5m = false;
+    target.warnedEnd = false;
     saveBookings(bookings);
-    updateActiveSessionBanner();
+    if (typeof socket !== 'undefined' && socket) {
+        socket.emit('updateBookings', bookings);
+    }
+    triggerAllUIRenders();
+    alert(`Simulasi Sisa 5 Menit Berhasil Diaktifkan!\n\nRuangan: ${target.roomName}\nPemesan: ${target.nama} (${target.nim})\nStatus: Waktu selesai diatur sisa 5 menit dari sekarang.\n\nPeriksa portal mahasiswa yang login dengan akun ${target.nama} (${target.nim}) untuk melihat banner sisa waktu dan mendengar bel peringatan.`);
 }
+window.adminTrigger5mSimulation = adminTrigger5mSimulation;
+
+// Trigger Expired / Session Ended Warning Simulation from Admin Panel
+function adminTriggerEndSimulation() {
+    const bookings = getBookings();
+    let target = bookings.find(b => b.status === 'Sedang Digunakan');
+    if (!target) {
+        target = bookings.find(b => b.status === 'Menunggu Kunci');
+        if (target) {
+            target.status = 'Sedang Digunakan';
+            target.ktmVerified = true;
+            target.startedAt = getSystemNow().toISOString();
+        }
+    }
+    if (!target) {
+        alert('Tidak ada data peminjaman untuk diuji. Silakan buat pemesanan terlebih dahulu di portal mahasiswa.');
+        return;
+    }
+    const now = getSystemNow();
+    target.scheduledEndAt = new Date(now.getTime() - 2000).toISOString();
+    target.warnedEnd = false;
+    target.warned5m = true;
+    isAlarmMuted = false;
+    saveBookings(bookings);
+    if (typeof socket !== 'undefined' && socket) {
+        socket.emit('updateBookings', bookings);
+    }
+    triggerAllUIRenders();
+    alert(`Simulasi Waktu Habis & Alarm Berulang Berhasil Diaktifkan!\n\nRuangan: ${target.roomName}\nPemesan: ${target.nama} (${target.nim})\nStatus: Waktu telah LEWAT (Overdue).\n\nPortal mahasiswa yang bersangkutan akan memutar bel darurat berulang dan menampilkan popup pengembalian kunci.`);
+}
+window.adminTriggerEndSimulation = adminTriggerEndSimulation;
+
+// Open Notification Modal for Specific Booking / Student
+function openNotifyModal(bookingId) {
+    const bookings = getBookings();
+    const target = bookings.find(b => b.id === bookingId);
+    if (!target) return;
+
+    const nimInput = document.getElementById('admin-notif-target-nim');
+    const bIdInput = document.getElementById('admin-notif-target-booking-id');
+    const infoEl = document.getElementById('admin-notif-target-info');
+    const titleInput = document.getElementById('admin-notif-input-title');
+    const msgInput = document.getElementById('admin-notif-input-message');
+
+    if (nimInput) nimInput.value = target.nim;
+    if (bIdInput) bIdInput.value = target.id;
+    if (infoEl) {
+        infoEl.innerHTML = `<i class="fa fa-user"></i> <strong>Target Mahasiswa:</strong> ${target.nama} (NIM: ${target.nim}) &bull; Ruangan: <strong>${target.roomName}</strong> (Jam ${target.slot})`;
+        infoEl.style.background = '#eff6ff';
+        infoEl.style.color = '#1e40af';
+        infoEl.style.borderColor = '#bfdbfe';
+    }
+    if (titleInput) titleInput.value = `Pemberitahuan: ${target.roomName}`;
+    if (msgInput) msgInput.value = '';
+
+    const modal = document.getElementById('modal-send-student-notification');
+    if (modal) modal.classList.remove('hidden');
+}
+window.openNotifyModal = openNotifyModal;
+
+// Open Broadcast Notification Modal for All Active Students
+function openBroadcastNotifyModal() {
+    const nimInput = document.getElementById('admin-notif-target-nim');
+    const bIdInput = document.getElementById('admin-notif-target-booking-id');
+    const infoEl = document.getElementById('admin-notif-target-info');
+    const titleInput = document.getElementById('admin-notif-input-title');
+    const msgInput = document.getElementById('admin-notif-input-message');
+
+    if (nimInput) nimInput.value = 'all';
+    if (bIdInput) bIdInput.value = '';
+    if (infoEl) {
+        infoEl.innerHTML = `<i class="fa fa-bullhorn"></i> <strong>Target:</strong> Seluruh Mahasiswa yang sedang aktif di Portal Civitas`;
+        infoEl.style.background = '#fef3c7';
+        infoEl.style.color = '#92400e';
+        infoEl.style.borderColor = '#fde68a';
+    }
+    if (titleInput) titleInput.value = 'Pengumuman Petugas Resepsionis Perpustakaan';
+    if (msgInput) msgInput.value = '';
+
+    const modal = document.getElementById('modal-send-student-notification');
+    if (modal) modal.classList.remove('hidden');
+}
+window.openBroadcastNotifyModal = openBroadcastNotifyModal;
+
+// Quick Template Filler for Receptionist Messages
+function applyNotificationTemplate(tplKey) {
+    const titleInput = document.getElementById('admin-notif-input-title');
+    const msgInput = document.getElementById('admin-notif-input-message');
+    const targetNim = document.getElementById('admin-notif-target-nim')?.value;
+    const bookings = getBookings();
+    const target = bookings.find(b => b.nim === targetNim);
+    const roomName = target ? target.roomName : 'ruang diskusi';
+
+    if (tplKey === 'kunci') {
+        if (titleInput) titleInput.value = 'Peringatan: Kunci Fisik Belum Diambil';
+        if (msgInput) msgInput.value = `Yth. Pemohon peminjaman ${roomName},\nKunci fisik ruangan Anda belum diambil di meja resepsionis Lt. 1. Sesuai ketentuan, batas toleransi pengambilan kunci adalah 15 menit dari jadwal mulai. Harap segera mengambil kunci fisik sebelum pemesanan otomatis gugur.`;
+    } else if (tplKey === 'sisa10') {
+        if (titleInput) titleInput.value = 'Pengingat: Waktu Diskusi Tersisa 10 Menit';
+        if (msgInput) msgInput.value = `Pemberitahuan kepada peminjam ${roomName}:\nWaktu sesi diskusi Anda tersisa 10 menit. Mohon bersiap menyelesaikan kegiatan, merapikan meja & kursi, mematikan pendingin ruangan (AC) & infokus, dan mengembalikan kunci fisik ke meja resepsionis Lt. 1.`;
+    } else if (tplKey === 'habis') {
+        if (titleInput) titleInput.value = 'WAKTU SELESAI: Harap Kembalikan Kunci Fisik';
+        if (msgInput) msgInput.value = `Waktu peminjaman ${roomName} telah berakhir.\nMohon segera mengosongkan ruangan dan menyerahkan kunci fisik ke petugas resepsionis di Lt. 1 sekarang juga.`;
+    } else if (tplKey === 'panggilan') {
+        if (titleInput) titleInput.value = 'Panggilan Petugas Resepsionis Gedung P';
+        if (msgInput) msgInput.value = `Diharapkan perwakilan kelompok peminjam ${roomName} dapat segera menemui petugas resepsionis di meja layanan Gedung P Lantai 1 perihal administrasi peminjaman.`;
+    }
+}
+window.applyNotificationTemplate = applyNotificationTemplate;
+
+// Submit Admin Notification via Socket.IO and REST API
+function submitAdminNotification() {
+    const targetNim = document.getElementById('admin-notif-target-nim')?.value || 'all';
+    const targetBookingId = document.getElementById('admin-notif-target-booking-id')?.value || null;
+    const title = document.getElementById('admin-notif-input-title')?.value.trim();
+    const message = document.getElementById('admin-notif-input-message')?.value.trim();
+
+    if (!message) {
+        alert('Silakan tulis isi pesan terlebih dahulu sebelum mengirim.');
+        return;
+    }
+
+    const payload = {
+        targetNim,
+        targetBookingId,
+        title: title || 'Pemberitahuan Petugas Resepsionis',
+        message,
+        sender: 'Petugas Resepsionis Lt. 1',
+        createdAt: getSystemNow().toISOString()
+    };
+
+    if (typeof socket !== 'undefined' && socket) {
+        socket.emit('admin:send_notification', payload);
+    }
+
+    fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    }).catch(err => console.warn('HTTP Notification send warning:', err));
+
+    closeModal('modal-send-student-notification');
+    alert('Notifikasi berhasil dikirimkan ke mahasiswa secara realtime!');
+}
+window.submitAdminNotification = submitAdminNotification;
 
 // Cancel current active session directly
 function cancelActiveSession() {
     const bookings = getBookings();
-    const active = bookings.find(b => b.nim === CURRENT_USER.nim && ['Menunggu Kunci', 'Sedang Digunakan'].includes(b.status))
-        || bookings.find(b => ['Menunggu Kunci', 'Sedang Digunakan'].includes(b.status));
+    const active = bookings.find(b => b.nim === CURRENT_USER.nim && ['Menunggu Kunci', 'Sedang Digunakan'].includes(b.status));
     if (active) {
         cancelBooking(active.id);
     } else {
