@@ -144,6 +144,7 @@
                 <div class="nav-tabs-custom">
                     <button class="tab-btn active" onclick="switchTab('tab-matrix')"><i class="fa fa-calendar-alt"></i>
                         Real-Time Monitoring & Pemesanan</button>
+                    <button class="tab-btn" onclick="switchTab('tab-denah')"><i class="fa fa-map-marked-alt"></i> Denah Ruangan</button>
                     <button class="tab-btn" onclick="switchTab('tab-history')"><i class="fa fa-history"></i> Riwayat &
                         Pembatalan Saya</button>
                     <button class="tab-btn" onclick="switchTab('tab-rules')"><i class="fa fa-gavel"></i> Tata Cara &
@@ -415,6 +416,108 @@
                     </div>
                 </div>
 
+                <!-- TAB 4: DENAH RUANG DISKUSI INTERAKTIF -->
+                <div id="tab-denah" class="tab-content hidden">
+                    <div class="card">
+                        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                            <span><i class="fa fa-map-marked-alt" style="color:#0284c7;"></i> Denah Tata Letak Ruang Diskusi Perpustakaan (Gedung P Lantai 1)</span>
+                            <span class="badge" style="background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; font-size:0.8rem; padding:5px 10px;">
+                                <i class="fa fa-mouse-pointer"></i> Klik angka 1 - 9 pada denah untuk info kapasitas
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <div class="denah-wrapper">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+                                    <div style="font-size:0.88rem; color:#475569;">
+                                        <i class="fa fa-info-circle" style="color:#0284c7;"></i> <strong>Petunjuk:</strong> Klik pada setiap kotak nomor biru (<strong>1 s.d. 9</strong>) untuk melihat kapasitas mahasiswa & fasilitas ruangan.
+                                    </div>
+                                    <div style="font-size:0.82rem; color:#64748b;">
+                                        <span style="display:inline-block; width:12px; height:12px; background:#0052cc; border-radius:3px; vertical-align:middle; margin-right:4px;"></span> Kotak Biru = Ruang Diskusi 1 - 9
+                                    </div>
+                                </div>
+
+                                <div class="denah-viewport">
+                                    <img src="denah.png" alt="Denah Ruang Diskusi Perpustakaan PKN STAN" class="denah-image">
+
+                                    <!-- Interactive Hotspot 1 (RD-01) -->
+                                    <button type="button" class="denah-hotspot" style="left: 89.84%; top: 90.74%; width: 6.04%; height: 9.17%;" onclick="showRoomCapacityModal('RD-01')" title="Klik untuk lihat kapasitas Ruang Diskusi 1" aria-label="Ruang Diskusi 1">
+                                        <span class="denah-hotspot-badge">RD 1</span>
+                                    </button>
+
+                                    <!-- Interactive Hotspot 2 (RD-02) -->
+                                    <button type="button" class="denah-hotspot" style="left: 89.84%; top: 78.52%; width: 6.04%; height: 9.07%;" onclick="showRoomCapacityModal('RD-02')" title="Klik untuk lihat kapasitas Ruang Diskusi 2" aria-label="Ruang Diskusi 2">
+                                        <span class="denah-hotspot-badge">RD 2</span>
+                                    </button>
+
+                                    <!-- Interactive Hotspot 3 (RD-03) -->
+                                    <button type="button" class="denah-hotspot" style="left: 89.84%; top: 68.24%; width: 6.04%; height: 9.07%;" onclick="showRoomCapacityModal('RD-03')" title="Klik untuk lihat kapasitas Ruang Diskusi 3" aria-label="Ruang Diskusi 3">
+                                        <span class="denah-hotspot-badge">RD 3</span>
+                                    </button>
+
+                                    <!-- Interactive Hotspot 4 (RD-04) -->
+                                    <button type="button" class="denah-hotspot" style="left: 88.23%; top: 18.89%; width: 6.15%; height: 9.35%;" onclick="showRoomCapacityModal('RD-04')" title="Klik untuk lihat kapasitas Ruang Diskusi 4" aria-label="Ruang Diskusi 4">
+                                        <span class="denah-hotspot-badge">RD 4</span>
+                                    </button>
+
+                                    <!-- Interactive Hotspot 5 (RD-05) -->
+                                    <button type="button" class="denah-hotspot" style="left: 88.18%; top: 4.07%; width: 6.20%; height: 9.26%;" onclick="showRoomCapacityModal('RD-05')" title="Klik untuk lihat kapasitas Ruang Diskusi 5" aria-label="Ruang Diskusi 5">
+                                        <span class="denah-hotspot-badge">RD 5</span>
+                                    </button>
+
+                                    <!-- Interactive Hotspot 6 (RD-06) -->
+                                    <button type="button" class="denah-hotspot" style="left: 4.11%; top: 0.56%; width: 6.25%; height: 9.44%;" onclick="showRoomCapacityModal('RD-06')" title="Klik untuk lihat kapasitas Ruang Diskusi 6" aria-label="Ruang Diskusi 6">
+                                        <span class="denah-hotspot-badge">RD 6</span>
+                                    </button>
+
+                                    <!-- Interactive Hotspot 7 (RD-07 Lesehan) -->
+                                    <button type="button" class="denah-hotspot" style="left: 4.38%; top: 11.67%; width: 5.73%; height: 8.61%;" onclick="showRoomCapacityModal('RD-07')" title="Klik untuk lihat kapasitas Ruang Diskusi 7 (Lesehan)" aria-label="Ruang Diskusi 7 (Lesehan)">
+                                        <span class="denah-hotspot-badge">RD 7</span>
+                                    </button>
+
+                                    <!-- Interactive Hotspot 8 (RD-08) -->
+                                    <button type="button" class="denah-hotspot" style="left: 4.06%; top: 53.43%; width: 5.73%; height: 8.70%;" onclick="showRoomCapacityModal('RD-08')" title="Klik untuk lihat kapasitas Ruang Diskusi 8" aria-label="Ruang Diskusi 8">
+                                        <span class="denah-hotspot-badge">RD 8</span>
+                                    </button>
+
+                                    <!-- Interactive Hotspot 9 (RD-09) -->
+                                    <button type="button" class="denah-hotspot" style="left: 4.06%; top: 65.19%; width: 5.73%; height: 8.70%;" onclick="showRoomCapacityModal('RD-09')" title="Klik untuk lihat kapasitas Ruang Diskusi 9" aria-label="Ruang Diskusi 9">
+                                        <span class="denah-hotspot-badge">RD 9</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Ringkasan Cepat Kartu Ruangan di Bawah Denah -->
+                            <div style="margin-top:20px;">
+                                <h6 style="color:#0f2b48; font-weight:700; margin-bottom:12px; font-size:0.95rem;">
+                                    <i class="fa fa-list-ul"></i> Daftar Ringkas Kapasitas Seluruh Ruang Diskusi:
+                                </h6>
+                                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap:12px;">
+                                    <div class="card" style="margin:0; padding:12px; border-left:4px solid #0284c7; cursor:pointer;" onclick="showRoomCapacityModal('RD-01')">
+                                        <div style="font-weight:700; color:#0f2b48; font-size:0.9rem;">Ruang Diskusi 1 s.d. 4</div>
+                                        <div style="font-size:0.8rem; color:#475569; margin-top:4px;"><i class="fa fa-users"></i> Maks. 8 Orang (Min. 3 Orang)</div>
+                                        <div style="font-size:0.75rem; color:#0284c7; font-weight:600; margin-top:6px;">Klik untuk rincian &rarr;</div>
+                                    </div>
+                                    <div class="card" style="margin:0; padding:12px; border-left:4px solid #10b981; cursor:pointer;" onclick="showRoomCapacityModal('RD-05')">
+                                        <div style="font-weight:700; color:#0f2b48; font-size:0.9rem;">Ruang Diskusi 5 & 6</div>
+                                        <div style="font-size:0.8rem; color:#475569; margin-top:4px;"><i class="fa fa-users"></i> Maks. 10 Orang (Min. 5 Orang)</div>
+                                        <div style="font-size:0.75rem; color:#059669; font-weight:600; margin-top:6px;">Klik untuk rincian &rarr;</div>
+                                    </div>
+                                    <div class="card" style="margin:0; padding:12px; border-left:4px solid #f59e0b; cursor:pointer;" onclick="showRoomCapacityModal('RD-07')">
+                                        <div style="font-weight:700; color:#0f2b48; font-size:0.9rem;">Ruang Diskusi 7 (Lesehan)</div>
+                                        <div style="font-size:0.8rem; color:#475569; margin-top:4px;"><i class="fa fa-users"></i> Maks. 20 Orang (Min. 10 Orang)</div>
+                                        <div style="font-size:0.75rem; color:#d97706; font-weight:600; margin-top:6px;">Klik untuk rincian &rarr;</div>
+                                    </div>
+                                    <div class="card" style="margin:0; padding:12px; border-left:4px solid #6366f1; cursor:pointer;" onclick="showRoomCapacityModal('RD-08')">
+                                        <div style="font-weight:700; color:#0f2b48; font-size:0.9rem;">Ruang Diskusi 8 & 9</div>
+                                        <div style="font-size:0.8rem; color:#475569; margin-top:4px;"><i class="fa fa-users"></i> Maks. 8 Orang (Min. 3 Orang)</div>
+                                        <div style="font-size:0.75rem; color:#4f46e5; font-weight:600; margin-top:6px;">Klik untuk rincian &rarr;</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </main>
         </div>
     </div>
@@ -653,6 +756,49 @@
             <div class="modal-footer" style="padding:12px 16px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end;">
                 <button type="button" class="btn btn-primary" onclick="closeModal('modal-admin-notification')" style="font-weight:600; padding:8px 18px;">
                     <i class="fa fa-check"></i> Saya Mengerti
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Informasi Kapasitas Ruang Diskusi (Hotspot Denah) -->
+    <div id="modal-room-capacity" class="modal-backdrop hidden">
+        <div class="modal-content" style="max-width: 480px; border-top: 4px solid #0f2b48; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.25);">
+            <div class="modal-header" style="background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
+                <h5 style="margin:0; font-size:1.1rem; font-weight:700; color:#0f2b48; display:flex; align-items:center; gap:8px;" id="modal-capacity-room-name">
+                    <i class="fa fa-door-open" style="color:#0284c7;"></i>
+                    <span>Informasi Ruangan</span>
+                </h5>
+                <button type="button" class="modal-close" onclick="closeModal('modal-room-capacity')">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <div style="text-align:center; padding:16px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; margin-bottom:16px;">
+                    <div style="font-size:0.85rem; color:#1e40af; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Kapasitas Mahasiswa</div>
+                    <div id="modal-capacity-number" style="font-size:1.6rem; font-weight:800; color:#1e3a8a; margin:6px 0;">
+                        -
+                    </div>
+                    <div id="modal-capacity-rule" style="font-size:0.85rem; color:#475569;">
+                        -
+                    </div>
+                </div>
+
+                <div style="margin-bottom:14px;">
+                    <div style="font-size:0.82rem; font-weight:700; color:#64748b; text-transform:uppercase; margin-bottom:6px;">
+                        <i class="fa fa-couch" style="margin-right:4px;"></i> Tipe Ruangan & Fasilitas:
+                    </div>
+                    <div id="modal-capacity-facilities" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:10px 14px; font-size:0.88rem; color:#334155; line-height:1.5;">
+                        -
+                    </div>
+                </div>
+
+                <div style="background:#fffbeb; border:1px solid #fef3c7; border-radius:6px; padding:10px 12px; font-size:0.8rem; color:#92400e; display:flex; align-items:flex-start; gap:8px;">
+                    <i class="fa fa-info-circle" style="margin-top:2px;"></i>
+                    <div>Peminjaman wajib dihadiri minimal sesuai batas bawah kapasitas dan tidak melebihi batas maksimal kapasitas.</div>
+                </div>
+            </div>
+            <div class="modal-footer" style="padding:12px 16px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end;">
+                <button type="button" class="btn btn-primary" onclick="closeModal('modal-room-capacity')" style="font-weight:600; padding:8px 20px;">
+                    Tutup
                 </button>
             </div>
         </div>

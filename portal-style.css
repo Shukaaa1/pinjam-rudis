@@ -966,3 +966,74 @@ body {
     line-height: 1.4;
 }
 
+/* Denah Ruangan Interaktif */
+.denah-wrapper {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.denah-viewport {
+    position: relative;
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    overflow: hidden;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.denah-image {
+    width: 100%;
+    height: auto;
+    display: block;
+    user-select: none;
+    pointer-events: none;
+}
+
+.denah-hotspot {
+    position: absolute;
+    background: rgba(14, 116, 144, 0.18);
+    border: 2px solid transparent;
+    border-radius: 12px;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.25s ease;
+    outline: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.denah-hotspot:hover, .denah-hotspot:focus {
+    background: rgba(245, 158, 11, 0.45);
+    border-color: #f59e0b;
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.9);
+    transform: scale(1.06);
+}
+
+.denah-hotspot-badge {
+    opacity: 0;
+    transform: translateY(4px);
+    transition: all 0.2s ease;
+    background: #0f2b48;
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.denah-hotspot:hover .denah-hotspot-badge {
+    opacity: 1;
+    transform: translateY(0);
+}
+

@@ -2407,3 +2407,105 @@ function cancelActiveSession() {
 }
 window.cancelActiveSession = cancelActiveSession;
 
+// Detail Kapasitas Ruang Diskusi (Hotspot Denah Interaktif)
+const ROOM_CAPACITY_DETAILS = {
+    'RD-01': {
+        name: 'Ruang Diskusi 1 (RD-01)',
+        min: 3,
+        max: 8,
+        desc: 'Maksimal 8 Mahasiswa (Minimal 3 Mahasiswa)',
+        facilities: 'Meja diskusi kayu, kursi putar ergonomis, papan tulis whiteboard kaca + spidol & penghapus, AC split, dan colokan stopkontak.'
+    },
+    'RD-02': {
+        name: 'Ruang Diskusi 2 (RD-02)',
+        min: 3,
+        max: 8,
+        desc: 'Maksimal 8 Mahasiswa (Minimal 3 Mahasiswa)',
+        facilities: 'Meja diskusi kayu, kursi putar ergonomis, papan tulis whiteboard kaca + spidol & penghapus, AC split, dan colokan stopkontak.'
+    },
+    'RD-03': {
+        name: 'Ruang Diskusi 3 (RD-03)',
+        min: 3,
+        max: 8,
+        desc: 'Maksimal 8 Mahasiswa (Minimal 3 Mahasiswa)',
+        facilities: 'Meja diskusi kayu, kursi putar ergonomis, papan tulis whiteboard kaca + spidol & penghapus, AC split, dan colokan stopkontak.'
+    },
+    'RD-04': {
+        name: 'Ruang Diskusi 4 (RD-04)',
+        min: 3,
+        max: 8,
+        desc: 'Maksimal 8 Mahasiswa (Minimal 3 Mahasiswa)',
+        facilities: 'Meja diskusi kayu, kursi putar ergonomis, papan tulis whiteboard kaca + spidol & penghapus, AC split, dan colokan stopkontak.'
+    },
+    'RD-05': {
+        name: 'Ruang Diskusi 5 (RD-05)',
+        min: 5,
+        max: 10,
+        desc: 'Maksimal 10 Mahasiswa (Minimal 5 Mahasiswa)',
+        facilities: 'Meja rapat diskusi panjang, kursi ergonomis, papan tulis whiteboard besar, AC split 2 PK, dan stopkontak meja.'
+    },
+    'RD-06': {
+        name: 'Ruang Diskusi 6 (RD-06)',
+        min: 5,
+        max: 10,
+        desc: 'Maksimal 10 Mahasiswa (Minimal 5 Mahasiswa)',
+        facilities: 'Meja rapat diskusi panjang, kursi ergonomis, papan tulis whiteboard besar, AC split 2 PK, dan stopkontak meja.'
+    },
+    'RD-07': {
+        name: 'Ruang Diskusi 7 (RD-07 Lesehan)',
+        min: 10,
+        max: 20,
+        desc: 'Maksimal 20 Mahasiswa (Minimal 10 Mahasiswa)',
+        facilities: 'Konsep Lesehan dengan karpet beludru tebal bersih, meja lesehan panjang, stopkontak melingkar, bantal duduk, dan AC sentral. Cocok untuk diskusi kelompok besar/mentoring massal.'
+    },
+    'RD-08': {
+        name: 'Ruang Diskusi 8 (RD-08)',
+        min: 3,
+        max: 8,
+        desc: 'Maksimal 8 Mahasiswa (Minimal 3 Mahasiswa)',
+        facilities: 'Meja diskusi kayu, kursi putar ergonomis, papan tulis whiteboard kaca + spidol & penghapus, AC split, dan colokan stopkontak.'
+    },
+    'RD-09': {
+        name: 'Ruang Diskusi 9 (RD-09)',
+        min: 3,
+        max: 8,
+        desc: 'Maksimal 8 Mahasiswa (Minimal 3 Mahasiswa)',
+        facilities: 'Meja diskusi kayu, kursi putar ergonomis, papan tulis whiteboard kaca + spidol & penghapus, AC split, dan colokan stopkontak.'
+    }
+};
+
+function showRoomCapacityModal(roomId) {
+    const info = ROOM_CAPACITY_DETAILS[roomId] || {
+        name: `Ruang Diskusi (${roomId})`,
+        min: 3,
+        max: 8,
+        desc: 'Kapasitas Standar Ruang Diskusi',
+        facilities: 'Meja diskusi, kursi, papan tulis, AC, dan stopkontak.'
+    };
+
+    const titleEl = document.getElementById('modal-capacity-room-name');
+    const numberEl = document.getElementById('modal-capacity-number');
+    const ruleEl = document.getElementById('modal-capacity-rule');
+    const facilitiesEl = document.getElementById('modal-capacity-facilities');
+    const modal = document.getElementById('modal-room-capacity');
+
+    if (titleEl) {
+        titleEl.innerHTML = `<i class="fa fa-door-open" style="color:#0284c7;"></i> <span>${info.name}</span>`;
+    }
+    if (numberEl) {
+        numberEl.innerHTML = `<i class="fa fa-users" style="color:#0284c7; font-size:1.4rem; margin-right:6px;"></i> ${info.min} s.d. ${info.max} Orang`;
+    }
+    if (ruleEl) {
+        ruleEl.textContent = info.desc;
+    }
+    if (facilitiesEl) {
+        facilitiesEl.innerHTML = `<strong>Fasilitas:</strong> ${info.facilities}`;
+    }
+
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+}
+window.showRoomCapacityModal = showRoomCapacityModal;
+
+
