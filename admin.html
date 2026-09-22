@@ -340,24 +340,52 @@
                     </div>
                 </div>
 
-                <!-- Kartu Pengujian Notifikasi & Sisa Waktu (Tes 5m & Tes Habis) -->
+                <!-- Kartu Pengujian Notifikasi & Sisa Waktu (Tes 5m, Tes Habis, & Uji Audio Langsung) -->
                 <div class="card" style="margin-top:20px; border-left:4px solid #ef4444;">
                     <div class="card-header" style="background:#fef2f2; display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-weight:700; color:#991b1b;"><i class="fa fa-vial" style="color:#ef4444;"></i> Pengujian Alarm & Peringatan Mahasiswa (Instan)</span>
-                        <span style="font-size:0.75rem; color:#b91c1c;">Pengujian Langsung ke Sesi Aktif</span>
+                        <span style="font-weight:700; color:#991b1b;"><i class="fa fa-vial" style="color:#ef4444;"></i> Pengujian Alarm, Peringatan & Audio Bel</span>
+                        <span style="font-size:0.75rem; color:#b91c1c;">Pengujian Instan Sesi & Sound File</span>
                     </div>
                     <div class="card-body">
-                        <p style="font-size:0.85rem; color:#64748b; margin-bottom:12px;">
-                            Gunakan tombol di bawah ini untuk menguji reaksi visual dan suara bel pada portal mahasiswa secara langsung tanpa menunggu waktu berjalan normal:
+                        <p style="font-size:0.85rem; color:#475569; margin-bottom:12px;">
+                            Uji reaksi visual dan pemutaran audio bel secara langsung tanpa menunggu waktu berjalan normal:
                         </p>
-                        <div style="display:flex; gap:12px; flex-wrap:wrap;">
-                            <button type="button" class="btn btn-warning" onclick="adminTrigger5mSimulation()" style="font-weight:600; font-size:0.88rem; padding:8px 16px;">
-                                <i class="fa fa-hourglass-half"></i> Uji Peringatan Sisa 5 Menit (Tes 5m)
-                            </button>
-                            <button type="button" class="btn btn-danger" onclick="adminTriggerEndSimulation()" style="font-weight:600; font-size:0.88rem; padding:8px 16px;">
-                                <i class="fa fa-bell"></i> Uji Waktu Habis & Alarm Berulang (Tes Habis)
-                            </button>
+                        <div style="margin-bottom:14px;">
+                            <div style="font-size:0.8rem; font-weight:700; color:#334155; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">
+                                <i class="fa fa-stopwatch"></i> Simulasi Timer Sesi Peminjaman:
+                            </div>
+                            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                                <button type="button" class="btn btn-warning" onclick="adminTrigger5mSimulation()" style="font-weight:600; font-size:0.85rem; padding:8px 16px;">
+                                    <i class="fa fa-hourglass-half"></i> Uji Peringatan Sisa 5 Menit (Tes 5m + warning.mp3)
+                                </button>
+                                <button type="button" class="btn btn-danger" onclick="adminTriggerEndSimulation()" style="font-weight:600; font-size:0.85rem; padding:8px 16px;">
+                                    <i class="fa fa-bell"></i> Uji Waktu Habis (Tes Habis + urgent.mp3 3x)
+                                </button>
+                            </div>
                         </div>
+
+                        <div style="border-top:1px dashed #cbd5e1; padding-top:12px;">
+                            <div style="font-size:0.8rem; font-weight:700; color:#334155; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">
+                                <i class="fa fa-music"></i> Uji Langsung Berkas Suara (Direct Sound Test):
+                            </div>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                                <button type="button" class="btn btn-outline-warning btn-sm" onclick="testNotificationSound('warning')" style="font-weight:600; padding:6px 12px;">
+                                    <i class="fa fa-play-circle"></i> Putar warning.mp3 (1x)
+                                </button>
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="testNotificationSound('urgent')" style="font-weight:600; padding:6px 12px;">
+                                    <i class="fa fa-play-circle"></i> Putar urgent.mp3 (3x)
+                                </button>
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="testNotificationSound('notification')" style="font-weight:600; padding:6px 12px;">
+                                    <i class="fa fa-play-circle"></i> Putar notification.mp3 (1x)
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="stopExpiredChimeLoop()" style="font-weight:600; padding:6px 12px;">
+                                    <i class="fa fa-stop-circle"></i> Hentikan Suara
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Feedback Status Pengujian Audio Non-blocking -->
+                        <div id="audio-sim-feedback" style="display:none; margin-top:12px; padding:10px 14px; border-radius:6px; font-size:0.85rem; font-weight:600;"></div>
                     </div>
                 </div>
             </div>

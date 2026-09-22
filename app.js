@@ -2029,26 +2029,23 @@ let soundEnabled = true;
 const CUSTOM_SOUND_MAP = {
     notification: [
         '/sounds/notification.mp3',
-        '/sounds/notification.wav',
-        '/sounds/notification.ogg',
-        '/sounds/warning.mp3'
+        'sounds/notification.mp3',
+        '../sounds/notification.mp3',
+        './sounds/notification.mp3'
     ],
     warning: [
         '/sounds/warning.mp3',
-        '/sounds/warning.wav',
-        '/sounds/warning.ogg',
-        '/sounds/notification.mp3'
+        'sounds/warning.mp3',
+        '../sounds/warning.mp3',
+        './sounds/warning.mp3'
     ],
     urgent: [
         '/sounds/urgent.mp3',
-        '/sounds/urgent.wav',
-        '/sounds/urgent.ogg',
-        '/sounds/alarm.mp3'
+        'sounds/urgent.mp3',
+        '../sounds/urgent.mp3',
+        './sounds/urgent.mp3'
     ]
 };
-
-// Cache status ketersediaan file suara agar tidak berulang kali memicu 404 saat file belum diunggah
-const soundAvailabilityCache = {};
 
 function getAudioContext() {
     if (!audioCtx) {
@@ -2058,167 +2055,191 @@ function getAudioContext() {
         }
     }
     if (audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume();
+        audioCtx.resume().catch(() => {});
     }
     return audioCtx;
 }
 
-// Buka kunci AudioContext dan Audio element saat interaksi pertama pengguna
+// Buka kunci AudioContext saat ada interaksi pengguna di halaman
 function initAudioAutoplayUnlock() {
     const unlock = () => {
-        getAudioContext();
-        window.removeEventListener('click', unlock);
-        window.removeEventListener('keydown', unlock);
-        window.removeEventListener('touchstart', unlock);
+        const ctx = getAudioContext();
+        if (ctx && ctx.state === 'suspended') {
+            ctx.resume().catch(() => {});
+        }
     };
-    window.addEventListener('click', unlock, { once: true });
-    window.addEventListener('keydown', unlock, { once: true });
-    window.addEventListener('touchstart', unlock, { once: true });
+    ['click', 'keydown', 'touchstart'].forEach(evt => {
+        window.addEventListener(evt, unlock, { once: false, passive: true });
+    });
 }
 initAudioAutoplayUnlock();
 
-// Synthesizer Web Audio API bawaan (fallback otomatis jika file audio kustom belum diunggah)
+// Synthesizer Web Audio API bawaan (fallback otomatis jika file audio kustom tidak dapat dimuat)
 function playSynthesizedChime(type = 'warning') {
     try {
         const ctx = getAudioContext();
         if (!ctx) return;
 
-        const now = ctx.currentTime;
+        const doSynthesis = () => {
+            try {
+                const now = ctx.currentTime;
 
-        if (type === 'notification') {
-            // Melodi bel dua nada untuk notifikasi masuk (C5: 523.25 Hz, G5: 783.99 Hz)
-            const osc1 = ctx.createOscillator();
-            const gain1 = ctx.createGain();
-            osc1.type = 'sine';
-            osc1.frequency.setValueAtTime(523.25, now);
-            gain1.gain.setValueAtTime(0.18, now);
-            gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-            osc1.connect(gain1);
-            gain1.connect(ctx.destination);
-            osc1.start(now);
-            osc1.stop(now + 0.45);
+                if (type === 'notification') {
+                    // Melodi bel dua nada untuk notifikasi masuk (C5: 523.25 Hz, G5: 783.99 Hz)
+                    const osc1 = ctx.createOscillator();
+                    const gain1 = ctx.createGain();
+                    osc1.type = 'sine';
+                    osc1.frequency.setValueAtTime(523.25, now);
+                    gain1.gain.setValueAtTime(0.25, now);
+                    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+                    osc1.connect(gain1);
+                    gain1.connect(ctx.destination);
+                    osc1.start(now);
+                    osc1.stop(now + 0.45);
 
-            const osc2 = ctx.createOscillator();
-            const gain2 = ctx.createGain();
-            osc2.type = 'sine';
-            osc2.frequency.setValueAtTime(783.99, now + 0.18);
-            gain2.gain.setValueAtTime(0.20, now + 0.18);
-            gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.75);
-            osc2.connect(gain2);
-            gain2.connect(ctx.destination);
-            osc2.start(now + 0.18);
-            osc2.stop(now + 0.75);
-        } else if (type === 'warning') {
-            // Melodic two-tone chime for 5-minute reminder (F5: 698.46 Hz, A5: 880 Hz)
-            const osc1 = ctx.createOscillator();
-            const gain1 = ctx.createGain();
-            osc1.type = 'sine';
-            osc1.frequency.setValueAtTime(698.46, now);
-            gain1.gain.setValueAtTime(0.15, now);
-            gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-            osc1.connect(gain1);
-            gain1.connect(ctx.destination);
-            osc1.start(now);
-            osc1.stop(now + 0.5);
+                    const osc2 = ctx.createOscillator();
+                    const gain2 = ctx.createGain();
+                    osc2.type = 'sine';
+                    osc2.frequency.setValueAtTime(783.99, now + 0.18);
+                    gain2.gain.setValueAtTime(0.28, now + 0.18);
+                    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.75);
+                    osc2.connect(gain2);
+                    gain2.connect(ctx.destination);
+                    osc2.start(now + 0.18);
+                    osc2.stop(now + 0.75);
+                } else if (type === 'warning') {
+                    // Melodic two-tone chime for 5-minute reminder (F5: 698.46 Hz, A5: 880 Hz)
+                    const osc1 = ctx.createOscillator();
+                    const gain1 = ctx.createGain();
+                    osc1.type = 'sine';
+                    osc1.frequency.setValueAtTime(698.46, now);
+                    gain1.gain.setValueAtTime(0.3, now);
+                    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                    osc1.connect(gain1);
+                    gain1.connect(ctx.destination);
+                    osc1.start(now);
+                    osc1.stop(now + 0.5);
 
-            const osc2 = ctx.createOscillator();
-            const gain2 = ctx.createGain();
-            osc2.type = 'sine';
-            osc2.frequency.setValueAtTime(880, now + 0.25);
-            gain2.gain.setValueAtTime(0.18, now + 0.25);
-            gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
-            osc2.connect(gain2);
-            gain2.connect(ctx.destination);
-            osc2.start(now + 0.25);
-            osc2.stop(now + 0.8);
-        } else if (type === 'urgent') {
-            // 3-tone chime for session finished (E5: 659.25 Hz, G5: 783.99 Hz, C6: 1046.50 Hz)
-            [659.25, 783.99, 1046.50].forEach((freq, idx) => {
-                const startTime = now + idx * 0.22;
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(freq, startTime);
-                gain.gain.setValueAtTime(0.2, startTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.6);
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start(startTime);
-                osc.stop(startTime + 0.6);
-            });
+                    const osc2 = ctx.createOscillator();
+                    const gain2 = ctx.createGain();
+                    osc2.type = 'sine';
+                    osc2.frequency.setValueAtTime(880, now + 0.25);
+                    gain2.gain.setValueAtTime(0.35, now + 0.25);
+                    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+                    osc2.connect(gain2);
+                    gain2.connect(ctx.destination);
+                    osc2.start(now + 0.25);
+                    osc2.stop(now + 0.85);
+                } else if (type === 'urgent') {
+                    // 3-tone chime for session finished (E5: 659.25 Hz, G5: 783.99 Hz, C6: 1046.50 Hz)
+                    [659.25, 783.99, 1046.50].forEach((freq, idx) => {
+                        const startTime = now + idx * 0.22;
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(freq, startTime);
+                        gain.gain.setValueAtTime(0.3, startTime);
+                        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.65);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(startTime);
+                        osc.stop(startTime + 0.65);
+                    });
+                }
+            } catch (err) {
+                console.warn('Synthesis execute error:', err);
+            }
+        };
+
+        if (ctx.state === 'suspended') {
+            ctx.resume().then(doSynthesis).catch(() => doSynthesis());
+        } else {
+            doSynthesis();
         }
     } catch (e) {
         console.warn('Synthesized chime error:', e);
     }
 }
 
-// Memutar file audio kustom dengan fallback berurutan dan fallback synthesizer
-function playCustomAudio(candidates, onFallback) {
+// Kumpulan referensi elemen Audio aktif untuk mencegah garbage collection dini oleh browser
+const activeAudioSet = new Set();
+let activeUrgentSequence = null;
+
+// Memutar file audio kustom dengan fallback berurutan, retensi GC, dan callback selesai
+function playCustomAudio(candidates, onFallback, onAudioCreated, onEnded) {
     if (!candidates || !candidates.length) {
         if (typeof onFallback === 'function') onFallback();
         return;
     }
 
-    // Jika ada kandidat yang sudah terverifikasi sebelumnya, langsung putar
-    const verifiedUrl = candidates.find(u => soundAvailabilityCache[u] === true);
-    if (verifiedUrl) {
-        const audio = new Audio(verifiedUrl);
-        audio.volume = 0.85;
-        const p = audio.play();
-        if (p !== undefined) {
-            p.catch(err => {
-                console.warn('Gagal memutar audio terverifikasi:', err);
-                if (typeof onFallback === 'function') onFallback();
-            });
-        }
-        return;
-    }
-
-    // Periksa kandidat yang belum pernah gagal (belum diuji)
-    const pendingCandidates = candidates.filter(u => soundAvailabilityCache[u] !== false);
-    if (!pendingCandidates.length) {
-        // Semua kandidat sudah pernah dicoba dan tidak ada, langsung fallback tanpa delay
-        if (typeof onFallback === 'function') onFallback();
-        return;
-    }
-
-    let fallbackInvoked = false;
+    let fallbackCalled = false;
     const triggerFallbackOnce = () => {
-        if (!fallbackInvoked) {
-            fallbackInvoked = true;
+        if (!fallbackCalled) {
+            fallbackCalled = true;
             if (typeof onFallback === 'function') onFallback();
         }
     };
 
+    let playbackFinished = false;
+    const triggerEndedOnce = () => {
+        if (!playbackFinished) {
+            playbackFinished = true;
+            if (typeof onEnded === 'function') onEnded();
+        }
+    };
+
     const tryCandidate = (index) => {
-        if (index >= pendingCandidates.length) {
+        if (index >= candidates.length) {
             triggerFallbackOnce();
             return;
         }
 
-        const url = pendingCandidates[index];
-        const audio = new Audio(url);
-        audio.volume = 0.85;
+        const url = candidates[index];
+        const audio = new Audio();
+        audio.volume = 0.95;
+        audio.preload = 'auto';
 
-        let handled = false;
-        const markFailedAndNext = () => {
-            if (handled) return;
-            handled = true;
-            soundAvailabilityCache[url] = false;
-            tryCandidate(index + 1);
+        activeAudioSet.add(audio);
+        if (typeof onAudioCreated === 'function') onAudioCreated(audio);
+
+        let nextCandidateCalled = false;
+        const next = () => {
+            activeAudioSet.delete(audio);
+            if (!nextCandidateCalled) {
+                nextCandidateCalled = true;
+                tryCandidate(index + 1);
+            }
         };
 
-        audio.onerror = markFailedAndNext;
+        audio.addEventListener('error', next, { once: true });
 
+        audio.addEventListener('ended', () => {
+            activeAudioSet.delete(audio);
+            triggerEndedOnce();
+        }, { once: true });
+
+        // Safety timeout jika browser tidak menembakkan event ended
+        const safetyTimeout = setTimeout(() => {
+            if (activeAudioSet.has(audio) && audio.paused) {
+                activeAudioSet.delete(audio);
+                triggerEndedOnce();
+            }
+        }, 12000);
+
+        audio.src = url;
         const p = audio.play();
         if (p !== undefined) {
             p.then(() => {
-                if (!handled) {
-                    handled = true;
-                    soundAvailabilityCache[url] = true;
+                // Audio berhasil diputar
+            }).catch(err => {
+                clearTimeout(safetyTimeout);
+                activeAudioSet.delete(audio);
+                if (err && err.name === 'NotAllowedError') {
+                    console.warn(`[Audio] Autoplay ${url} memerlukan interaksi klik pengguna pada halaman.`);
+                    triggerFallbackOnce();
+                } else {
+                    next();
                 }
-            }).catch(() => {
-                markFailedAndNext();
             });
         }
     };
@@ -2226,67 +2247,96 @@ function playCustomAudio(candidates, onFallback) {
     tryCandidate(0);
 }
 
-// Memutar nada tunggal (tepat 1 kali) baik melalui file kustom maupun synthesizer
-function playSingleChime(type = 'notification') {
-    if (!soundEnabled) return;
+// Memutar nada tunggal baik melalui file kustom maupun synthesizer
+function playSingleChime(type = 'notification', onAudioCreated, onEnded) {
+    if (!soundEnabled) {
+        if (typeof onEnded === 'function') onEnded();
+        return;
+    }
+
+    let finished = false;
+    const finishOnce = () => {
+        if (!finished) {
+            finished = true;
+            if (typeof onEnded === 'function') onEnded();
+        }
+    };
+
     try {
         getAudioContext();
-
         const candidates = CUSTOM_SOUND_MAP[type] || CUSTOM_SOUND_MAP['warning'] || [];
-        if (!candidates.length) {
-            playSynthesizedChime(type);
-            return;
-        }
-
         playCustomAudio(candidates, () => {
-            playSynthesizedChime(type);
-        });
+            playSynthesizedChime(type, finishOnce);
+        }, onAudioCreated, finishOnce);
     } catch (e) {
         console.warn('Audio playback error:', e);
-        playSynthesizedChime(type);
+        playSynthesizedChime(type, finishOnce);
     }
 }
 window.playSingleChime = playSingleChime;
 
-// Pengendali suara peringatan (semua suara diputar tepat 1 kali saja agar nyaman)
+// Pengendali suara peringatan kompatibilitas
 function stopWarningChime() {
-    // Fungsi pembantu kompatibilitas saat modal ditutup
+    // Kompatibilitas saat modal ditutup
 }
 window.stopWarningChime = stopWarningChime;
 
-// Fungsi utama: memutar suara notifikasi tepat 1 kali saja untuk semua tipe (notification, warning, urgent)
-function playChimeSound(type = 'notification') {
-    if (!soundEnabled) return;
-    playSingleChime(type);
+// Fungsi utama: memutar suara bel (notification, warning, urgent)
+function playChimeSound(type = 'notification', onAudioCreated, onEnded) {
+    if (!soundEnabled) {
+        if (typeof onEnded === 'function') onEnded();
+        return;
+    }
+    playSingleChime(type, onAudioCreated, onEnded);
 }
-
-// Expose helper pengujian audio di console browser
 window.playChimeSound = playChimeSound;
 window.playSynthesizedChime = playSynthesizedChime;
-window.testNotificationSound = function(type = 'notification') {
-    getAudioContext();
-    playChimeSound(type);
-};
-window.resetSoundCache = function() {
-    for (const key in soundAvailabilityCache) {
-        delete soundAvailabilityCache[key];
+
+// Helper pengujian audio langsung dari tombol UI maupun console
+function testNotificationSound(type = 'notification') {
+    const ctx = getAudioContext();
+    if (ctx && ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
     }
-    console.log('Cache sound notifikasi di-reset. File audio baru akan dicek kembali.');
+    if (type === 'urgent') {
+        startExpiredChimeLoop(3, 600);
+        showAdminToast('Memutar suara darurat (urgent.mp3) tepat 3 kali berturut-turut.', 'danger');
+    } else if (type === 'warning') {
+        playChimeSound('warning');
+        showAdminToast('Memutar suara peringatan 5 menit (warning.mp3).', 'warning');
+    } else {
+        playChimeSound('notification');
+        showAdminToast('Memutar suara notifikasi resepsionis (notification.mp3).', 'info');
+    }
+}
+window.testNotificationSound = testNotificationSound;
+
+window.resetSoundCache = function() {
+    console.log('Audio subsystem siap memutar suara.');
 };
 
 function toggleAudioChime() {
     soundEnabled = !soundEnabled;
-    const btn = document.getElementById('btn-audio-toggle');
+    const btns = document.querySelectorAll('.btn-audio-toggle, #btn-audio-toggle');
     if (soundEnabled) {
         getAudioContext();
-        playSingleChime('notification'); // Uji nada tepat 1 kali saat mengaktifkan suara
-        if (btn) btn.innerHTML = '<i class="fa fa-volume-up"></i> Suara Aktif';
+        playSingleChime('notification');
+        btns.forEach(btn => {
+            btn.innerHTML = '<i class="fa fa-volume-up"></i> Suara Aktif';
+            btn.classList.remove('btn-outline-secondary');
+            btn.classList.add('btn-outline-primary');
+        });
     } else {
         stopExpiredChimeLoop();
         stopWarningChime();
-        if (btn) btn.innerHTML = '<i class="fa fa-volume-mute"></i> Suara Senyap';
+        btns.forEach(btn => {
+            btn.innerHTML = '<i class="fa fa-volume-mute"></i> Suara Senyap';
+            btn.classList.remove('btn-outline-primary');
+            btn.classList.add('btn-outline-secondary');
+        });
     }
 }
+window.toggleAudioChime = toggleAudioChime;
 
 // Format duration helper (HH:MM:SS)
 function formatDuration(ms) {
@@ -2300,29 +2350,67 @@ function formatDuration(ms) {
     return `${pad(hours)}:${pad(mins)}:${pad(secs)}`;
 }
 
-// Expired chime looping state & controllers
-let expiredChimeInterval = null;
+// Expired chime state & controllers (diputar tepat 3 kali berurutan saat sesi habis)
 let isAlarmMuted = false;
 let lastBrowserNotifTime = 0;
 
-function startExpiredChimeLoop() {
-    if (expiredChimeInterval || isAlarmMuted || !soundEnabled) return;
+/**
+ * Memutar suara peringatan sesi habis (urgent.mp3) tepat 3 kali berurutan.
+ * Menggunakan callback penyelesaian pemutaran sehingga nada tidak saling tumpang tindih.
+ * @param {number} totalReps Jumlah pengulangan (default: 3)
+ * @param {number} gapMs Jeda waktu antar bunyi setelah audio selesai dalam ms (default: 600ms)
+ */
+function startExpiredChimeLoop(totalReps = 3, gapMs = 600) {
+    if (isAlarmMuted || !soundEnabled) return;
+    stopExpiredChimeLoop();
     getAudioContext();
-    playChimeSound('urgent');
-    expiredChimeInterval = setInterval(() => {
-        if (!isAlarmMuted && soundEnabled) {
-            playChimeSound('urgent');
-        } else {
+
+    const seq = {
+        repsLeft: totalReps,
+        timer: null,
+        currentAudio: null
+    };
+    activeUrgentSequence = seq;
+
+    function playOneRep() {
+        if (!activeUrgentSequence || activeUrgentSequence !== seq) return;
+        if (isAlarmMuted || !soundEnabled || seq.repsLeft <= 0) {
             stopExpiredChimeLoop();
+            return;
         }
-    }, 4000);
+
+        seq.repsLeft--;
+        playChimeSound('urgent', (audioInstance) => {
+            if (activeUrgentSequence === seq) {
+                seq.currentAudio = audioInstance;
+            }
+        }, () => {
+            if (!activeUrgentSequence || activeUrgentSequence !== seq) return;
+            seq.currentAudio = null;
+            if (seq.repsLeft > 0 && !isAlarmMuted && soundEnabled) {
+                seq.timer = setTimeout(playOneRep, gapMs);
+            } else {
+                stopExpiredChimeLoop();
+            }
+        });
+    }
+
+    playOneRep();
     updateMuteButtonUI();
 }
 
 function stopExpiredChimeLoop() {
-    if (expiredChimeInterval) {
-        clearInterval(expiredChimeInterval);
-        expiredChimeInterval = null;
+    if (activeUrgentSequence) {
+        if (activeUrgentSequence.timer) {
+            clearTimeout(activeUrgentSequence.timer);
+        }
+        if (activeUrgentSequence.currentAudio) {
+            try {
+                activeUrgentSequence.currentAudio.pause();
+                activeUrgentSequence.currentAudio.currentTime = 0;
+            } catch (e) {}
+        }
+        activeUrgentSequence = null;
     }
     updateMuteButtonUI();
 }
@@ -2336,7 +2424,7 @@ function toggleMuteExpiredAlarm() {
         const active = bookings.find(b => b.nim === CURRENT_USER.nim && b.status === 'Sedang Digunakan')
             || bookings.find(b => b.status === 'Sedang Digunakan');
         if (active && active.scheduledEndAt && new Date(active.scheduledEndAt) <= new Date()) {
-            startExpiredChimeLoop();
+            startExpiredChimeLoop(3, 600);
         }
     }
     updateMuteButtonUI();
@@ -2358,6 +2446,40 @@ function updateMuteButtonUI() {
         modalBtn.className = isAlarmMuted ? 'btn btn-warning' : 'btn btn-outline-secondary';
     }
 }
+
+// Notifikasi visual non-blocking untuk Admin Panel
+function showAdminToast(message, type = 'info') {
+    const feedbackEl = document.getElementById('audio-sim-feedback');
+    if (feedbackEl) {
+        feedbackEl.style.display = 'block';
+        feedbackEl.style.background = type === 'warning' ? '#fef3c7' : (type === 'danger' ? '#fee2e2' : '#ecfdf5');
+        feedbackEl.style.border = `1px solid ${type === 'warning' ? '#f59e0b' : (type === 'danger' ? '#ef4444' : '#10b981')}`;
+        feedbackEl.style.color = type === 'warning' ? '#92400e' : (type === 'danger' ? '#991b1b' : '#065f46');
+        feedbackEl.innerHTML = `<i class="fa fa-${type === 'danger' ? 'bell' : (type === 'warning' ? 'hourglass-half' : 'check-circle')}"></i> ${message}`;
+        clearTimeout(feedbackEl._toastTimer);
+        feedbackEl._toastTimer = setTimeout(() => {
+            feedbackEl.style.display = 'none';
+        }, 7000);
+        return;
+    }
+
+    let toast = document.getElementById('global-admin-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'global-admin-toast';
+        toast.style.cssText = 'position:fixed; bottom:24px; right:24px; z-index:99999; padding:12px 18px; border-radius:8px; font-weight:600; font-size:0.9rem; box-shadow:0 10px 25px rgba(0,0,0,0.2); transition:all 0.3s ease; display:none; max-width:420px;';
+        document.body.appendChild(toast);
+    }
+    toast.style.background = type === 'danger' ? '#ef4444' : (type === 'warning' ? '#f59e0b' : '#10b981');
+    toast.style.color = '#ffffff';
+    toast.innerHTML = `<i class="fa fa-${type === 'danger' ? 'bell' : (type === 'warning' ? 'exclamation-circle' : 'info-circle')}"></i> ${message}`;
+    toast.style.display = 'block';
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => {
+        toast.style.display = 'none';
+    }, 5000);
+}
+window.showAdminToast = showAdminToast;
 
 // Modal helper for 5-minute warning
 function showWarning5mModal(booking) {
@@ -2502,30 +2624,20 @@ function updateActiveSessionBanner() {
             countdownEl.innerText = '-' + formatDuration(overdueMs);
         }
 
-        // Trigger finished alert & start continuous chime loop
+        // Trigger finished alert & play urgent chime exactly 3 times
         if (!active.warnedEnd) {
             active.warnedEnd = true;
             saveBookings(bookings);
             isAlarmMuted = false;
             showSessionEndedModal(active);
-            startExpiredChimeLoop();
+            startExpiredChimeLoop(3, 600);
             sendSystemNotification('Waktu Peminjaman Berakhir', `Waktu peminjaman ${active.roomName} telah habis. Silakan kembalikan kunci.`);
             lastBrowserNotifTime = Date.now();
         } else {
-            // Keep chime loop active if modal is open and not muted
-            const modal = document.getElementById('modal-session-ended');
-            const isModalOpen = modal && !modal.classList.contains('hidden');
-            if (isModalOpen && !isAlarmMuted && !expiredChimeInterval) {
-                startExpiredChimeLoop();
-            }
-
-            // Periodic browser notification reminder & repeat chime every 15 seconds while expired
+            // Periodic browser notification reminder (visual only, no infinite audio chime loop)
             const nowTs = Date.now();
-            if (nowTs - lastBrowserNotifTime > 15000) {
-                sendSystemNotification('WAKTU PEMINJAMAN HABIS!', `Pemberitahuan Berulang: Waktu pemakaian ${active.roomName} telah habis. Segera rapikan ruangan dan kembalikan kunci fisik ke resepsionis Lt. 1.`);
-                if (!isAlarmMuted && soundEnabled) {
-                    playChimeSound('urgent');
-                }
+            if (nowTs - lastBrowserNotifTime > 30000) {
+                sendSystemNotification('WAKTU PEMINJAMAN HABIS!', `Pemberitahuan: Waktu pemakaian ${active.roomName} telah habis. Segera rapikan ruangan dan kembalikan kunci fisik ke resepsionis Lt. 1.`);
                 lastBrowserNotifTime = nowTs;
             }
         }
@@ -2536,9 +2648,8 @@ function updateActiveSessionBanner() {
 // ADMIN SIMULATION & NOTIFICATION HANDLERS
 // ==========================================
 
-// Trigger 5-Minute Warning Simulation from Admin Panel
-function adminTrigger5mSimulation() {
-    const bookings = getBookings();
+// Helper untuk memastikan terdapat sesi peminjaman aktif untuk keperluan pengujian
+function getOrProvisionActiveBooking(bookings) {
     let target = bookings.find(b => b.status === 'Sedang Digunakan');
     if (!target) {
         target = bookings.find(b => b.status === 'Menunggu Kunci');
@@ -2549,49 +2660,82 @@ function adminTrigger5mSimulation() {
         }
     }
     if (!target) {
-        alert('Tidak ada data peminjaman untuk diuji. Silakan buat pemesanan terlebih dahulu di portal mahasiswa.');
-        return;
+        // Ambil peminjaman pertama atau buat sesi uji aktif otomatis
+        if (bookings.length > 0) {
+            target = bookings[0];
+            target.status = 'Sedang Digunakan';
+            target.ktmVerified = true;
+            target.startedAt = getSystemNow().toISOString();
+        } else {
+            target = {
+                id: 'BK-SIM-01',
+                nama: 'Ahmad Fauzi Rahman',
+                nim: '2301100101',
+                prodi: 'D III Pajak',
+                kelas: '3-01',
+                hp: '081211110001',
+                roomId: 'RD-01',
+                roomName: 'Ruang Diskusi 1',
+                date: getTodayDateString(),
+                slot: '09.00',
+                durasi: 2,
+                jumlah: 4,
+                keperluan: 'Simulasi Pengujian Sistem Audio & Sisa Waktu',
+                status: 'Sedang Digunakan',
+                ktmVerified: true,
+                createdAt: getSystemNow().toISOString(),
+                startedAt: getSystemNow().toISOString()
+            };
+            bookings.unshift(target);
+        }
     }
+    return target;
+}
+
+// Trigger 5-Minute Warning Simulation from Admin Panel
+function adminTrigger5mSimulation() {
+    const bookings = getBookings();
+    const target = getOrProvisionActiveBooking(bookings);
     const now = getSystemNow();
+
     target.scheduledEndAt = new Date(now.getTime() + (4 * 60 + 55) * 1000).toISOString();
     target.warned5m = false;
     target.warnedEnd = false;
     saveBookings(bookings);
+
     if (typeof socket !== 'undefined' && socket) {
         socket.emit('updateBookings', bookings);
     }
     triggerAllUIRenders();
-    alert(`Simulasi Sisa 5 Menit Berhasil Diaktifkan!\n\nRuangan: ${target.roomName}\nPemesan: ${target.nama} (${target.nim})\nStatus: Waktu selesai diatur sisa 5 menit dari sekarang.\n\nPeriksa portal mahasiswa yang login dengan akun ${target.nama} (${target.nim}) untuk melihat banner sisa waktu dan mendengar bel peringatan.`);
+
+    // Bunyikan langsung suara warning.mp3 di tab admin
+    playChimeSound('warning');
+
+    showAdminToast(`Simulasi Sisa 5 Menit Berhasil Diaktifkan! (${target.roomName} - ${target.nama}). Suara peringatan (warning.mp3) dibunyikan.`, 'warning');
 }
 window.adminTrigger5mSimulation = adminTrigger5mSimulation;
 
 // Trigger Expired / Session Ended Warning Simulation from Admin Panel
 function adminTriggerEndSimulation() {
     const bookings = getBookings();
-    let target = bookings.find(b => b.status === 'Sedang Digunakan');
-    if (!target) {
-        target = bookings.find(b => b.status === 'Menunggu Kunci');
-        if (target) {
-            target.status = 'Sedang Digunakan';
-            target.ktmVerified = true;
-            target.startedAt = getSystemNow().toISOString();
-        }
-    }
-    if (!target) {
-        alert('Tidak ada data peminjaman untuk diuji. Silakan buat pemesanan terlebih dahulu di portal mahasiswa.');
-        return;
-    }
+    const target = getOrProvisionActiveBooking(bookings);
     const now = getSystemNow();
+
     target.scheduledEndAt = new Date(now.getTime() - 2000).toISOString();
     target.warnedEnd = false;
     target.warned5m = true;
     isAlarmMuted = false;
     saveBookings(bookings);
+
     if (typeof socket !== 'undefined' && socket) {
         socket.emit('updateBookings', bookings);
     }
     triggerAllUIRenders();
-    alert(`Simulasi Waktu Habis & Alarm Berulang Berhasil Diaktifkan!\n\nRuangan: ${target.roomName}\nPemesan: ${target.nama} (${target.nim})\nStatus: Waktu telah LEWAT (Overdue).\n\nPortal mahasiswa yang bersangkutan akan memutar bel darurat berulang dan menampilkan popup pengembalian kunci.`);
+
+    // Bunyikan langsung suara urgent.mp3 tepat 3 kali berturut-turut di tab admin
+    startExpiredChimeLoop(3, 600);
+
+    showAdminToast(`Simulasi Waktu Habis Berhasil Diaktifkan! (${target.roomName} - ${target.nama}). Suara darurat (urgent.mp3) diputar 3 kali.`, 'danger');
 }
 window.adminTriggerEndSimulation = adminTriggerEndSimulation;
 
@@ -2820,5 +2964,72 @@ function showRoomCapacityModal(roomId) {
     }
 }
 window.showRoomCapacityModal = showRoomCapacityModal;
+
+// ==========================================
+// STUDENT SIDEBAR TOGGLE (NAVIGASI BUKA-TUTUP)
+// ==========================================
+
+function toggleStudentSidebar() {
+    const sidebar = document.getElementById('app-student-sidebar');
+    const backdrop = document.getElementById('student-sidebar-backdrop');
+    if (!sidebar) return;
+
+    const isMobile = window.innerWidth <= 900;
+    if (isMobile) {
+        const isOpen = sidebar.classList.contains('mobile-open');
+        if (isOpen) {
+            sidebar.classList.remove('mobile-open');
+            if (backdrop) backdrop.classList.remove('active');
+        } else {
+            sidebar.classList.add('mobile-open');
+            if (backdrop) backdrop.classList.add('active');
+        }
+    } else {
+        sidebar.classList.toggle('collapsed');
+        const isCollapsed = sidebar.classList.contains('collapsed');
+        try {
+            localStorage.setItem('student_sidebar_collapsed', isCollapsed ? '1' : '0');
+        } catch (e) {}
+    }
+}
+window.toggleStudentSidebar = toggleStudentSidebar;
+
+function initStudentSidebar() {
+    const sidebar = document.getElementById('app-student-sidebar');
+    const backdrop = document.getElementById('student-sidebar-backdrop');
+    if (!sidebar) return;
+
+    // Pulihkan preferensi collapse desktop dari localStorage
+    if (window.innerWidth > 900) {
+        try {
+            if (localStorage.getItem('student_sidebar_collapsed') === '1') {
+                sidebar.classList.add('collapsed');
+            }
+        } catch (e) {}
+    }
+
+    // Tutup mobile drawer saat tombol Escape ditekan
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && sidebar.classList.contains('mobile-open')) {
+            sidebar.classList.remove('mobile-open');
+            if (backdrop) backdrop.classList.remove('active');
+        }
+    });
+
+    // Reset drawer mobile saat jendela layar diubah ke desktop
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 900) {
+            sidebar.classList.remove('mobile-open');
+            if (backdrop) backdrop.classList.remove('active');
+        }
+    });
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initStudentSidebar);
+} else {
+    initStudentSidebar();
+}
+
 
 

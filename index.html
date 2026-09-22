@@ -18,8 +18,8 @@
                 <img src="https://portal.pknstan.ac.id/assets/plugins/images/stan_ico.ico" alt="PKN STAN Logo"
                     width="36" height="36">
                 <strong>Civitas</strong>
-                <button type="button" class="btn btn-sm btn-light" style="margin-left: 10px; border:none; background:transparent;" title="Toggle Sidebar">
-                    <i class="fa fa-bars" style="color: #64748b;"></i>
+                <button type="button" class="btn-sidebar-toggle" id="btn-student-sidebar-toggle" onclick="toggleStudentSidebar()" aria-label="Buka atau tutup bilah menu samping" title="Buka/Tutup Sidebar">
+                    <i class="fa fa-bars"></i>
                 </button>
             </div>
 
@@ -29,6 +29,11 @@
                     <span class="dot"></span>
                     <span id="realtime-status-text">Realtime Terhubung</span>
                 </div>
+
+                <!-- Audio Status / Test Button -->
+                <button type="button" id="btn-audio-toggle" class="btn btn-outline-primary btn-sm btn-audio-toggle" onclick="toggleAudioChime()" title="Klik untuk mengaktifkan atau menguji audio bel" style="font-size:0.75rem; font-weight:600; padding:4px 10px; border-radius:16px; background:#f0fdf4; border-color:#86efac; color:#166534;">
+                    <i class="fa fa-volume-up"></i> Suara Aktif
+                </button>
 
                 <!-- User Profile -->
                 <div class="app-header-user">
@@ -46,8 +51,11 @@
         </header>
 
         <div class="app-main">
+            <!-- Backdrop Overlay for Mobile Sidebar -->
+            <div id="student-sidebar-backdrop" class="student-sidebar-backdrop" onclick="toggleStudentSidebar()" aria-hidden="true"></div>
+
             <!-- Left Sidebar Replicating Image 2 -->
-            <aside class="app-sidebar">
+            <aside class="app-sidebar" id="app-student-sidebar" aria-label="Navigasi Menu Civitas">
                 <div class="sidebar-heading">GENERAL</div>
                 <ul class="nav-menu">
                     <li><a href="javascript:void(0)" onclick="alert('Navigasi prototipe: Anda saat ini berada di modul Peminjaman Ruang Diskusi.')"><i class="fa fa-chart-line"></i> Beranda</a></li>
@@ -694,11 +702,8 @@
                     <li><i class="fa fa-key" style="color:#3f6ad8;"></i> Kembalikan kunci ke resepsionis (Lt. 1) & ambil kembali KTM</li>
                 </ul>
             </div>
-            <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                <button type="button" id="btn-modal-mute-alarm" class="btn btn-outline-secondary" onclick="toggleMuteExpiredAlarm()" style="font-weight:600;">
-                    <i class="fa fa-volume-mute"></i> Senyapkan Alarm
-                </button>
-                <button type="button" class="btn btn-danger" onclick="closeModal('modal-session-ended')" style="font-weight:600;">
+            <div class="modal-footer" style="display:flex; justify-content:flex-end; align-items:center; gap:10px;">
+                <button type="button" class="btn btn-danger" onclick="closeModal('modal-session-ended')" style="font-weight:600; padding:8px 20px;">
                     <i class="fa fa-door-closed"></i> Selesai & Kembalikan Kunci
                 </button>
             </div>
